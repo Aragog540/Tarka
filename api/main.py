@@ -14,7 +14,7 @@ from memory.store import memory
 from observability.logger import logger
 
 app = FastAPI(
-    title="Multi-Agent Research Assistant",
+    title="Tarka",
     description="LangGraph-powered research system with Supervisor, Searcher, Summarizer, Critic, and Aggregator agents.",
     version="1.0.0",
 )
@@ -34,7 +34,7 @@ APP_HTML = r"""
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Research Assistant</title>
+    <title>Tarka</title>
     <style>
         :root {
             --bg: #f4f1ea;
@@ -580,7 +580,7 @@ APP_HTML = r"""
             <div class="main-column">
                 <section class="hero">
                     <div class="card intro">
-                        <div class="eyebrow">Multi-Agent Research Assistant</div>
+                        <div class="eyebrow">Tarka</div>
                         <h1>Ask. Search. Critique. Answer.</h1>
                         <p class="lead">
                             A clean, minimal research workspace built for demos. Enter a question, let the agent graph gather evidence,
