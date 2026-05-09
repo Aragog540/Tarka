@@ -17,7 +17,7 @@ class ResearchMemory:
             metadata={"hnsw:space": "cosine"},
         )
 
-    def store(self, query: str, final_answer: str, claims: List[dict]) -> str:
+    def store(self, query: str, final_answer: str, claims: List[dict], source_urls: Optional[List[str]] = None) -> str:
         doc_id = hashlib.md5(query.encode()).hexdigest()
         self._collection.upsert(
             ids=[doc_id],
@@ -25,6 +25,7 @@ class ResearchMemory:
             metadatas=[{
                 "query": query,
                 "claims_json": json.dumps(claims),
+                "source_urls_json": json.dumps(source_urls or []),
             }],
         )
         return doc_id
@@ -43,6 +44,7 @@ class ResearchMemory:
                 "query": meta["query"],
                 "answer": doc,
                 "claims": json.loads(meta.get("claims_json", "[]")),
+                "source_urls": json.loads(meta.get("source_urls_json", "[]")),
                 "distance": dist,
             }
             for doc, meta, dist in zip(

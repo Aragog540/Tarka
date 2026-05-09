@@ -9,10 +9,9 @@ Guidelines:
 - Lead with a direct answer to the query
 - Organize by key dimensions (e.g., cost, performance, use cases)
 - Use plain text only: no Markdown headings, bold, bullets, numbered lists, tables, or code fences
-- Use short labeled paragraphs such as "Direct answer:", "Cost:", and "Sources:"
+- Use short labeled paragraphs such as "Direct answer:" and "Cost:"
 - Include citations inline as "Source: domain.com" in parentheses
 - Flag any remaining uncertainty honestly
-- End with a "Sources:" section listing all cited URLs on separate lines
 - Do not invent facts — only use what's in the claims"""
 
 
@@ -58,7 +57,14 @@ def aggregator_node(state: ResearchState) -> dict:
     if critique and critique.verified_claims:
         verified_text = "\n".join(f"- {v}" for v in critique.verified_claims)
 
-    urls = {r.source: r.url for r in state.get("search_results", []) if r.url}
+    urls = []
+    seen_urls = set()
+    for result in state.get("search_results", []):
+        url = getattr(result, "url", "")
+        if not url or not url.startswith("http") or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        urls.append(url)
 
     final_answer = generate_text(
         _SYSTEM_PROMPT,
@@ -66,9 +72,8 @@ def aggregator_node(state: ResearchState) -> dict:
             f"Research query: {query}\n\n"
             f"Verified claims:\n{claims_text or 'None available'}\n\n"
             f"Critic-approved claims:\n{verified_text or 'None'}\n\n"
-            f"Available source URLs:\n"
-            + "\n".join(f"- {domain}: {url}" for domain, url in urls.items())
-            + f"\n\nResearch completed in {iterations} iteration(s)."
+            f"Available source URLs are tracked separately for the UI and should not be repeated in the answer.\n\n"
+            f"Research completed in {iterations} iteration(s)."
         ),
         max_tokens=2000,
     )
@@ -79,6 +84,7 @@ def aggregator_node(state: ResearchState) -> dict:
             query=query,
             final_answer=final_answer,
             claims=[c.dict() for c in summary.claims],
+            source_urls=urls,
         )
         logger.info("[aggregator] stored result in memory")
 

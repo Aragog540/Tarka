@@ -496,6 +496,48 @@ APP_HTML = r"""
             transform: translateX(20px);
         }
 
+        body[data-theme="dark"] .card,
+        body[data-theme="dark"] .btn-secondary,
+        body[data-theme="dark"] .chip,
+        body[data-theme="dark"] textarea,
+        body[data-theme="dark"] .history-item,
+        body[data-theme="dark"] .history-empty,
+        body[data-theme="dark"] .empty,
+        body[data-theme="dark"] .source,
+        body[data-theme="dark"] .meta div,
+        body[data-theme="dark"] .stat {
+            background: rgba(15, 23, 42, 0.96);
+            border-color: rgba(148, 163, 184, 0.18);
+            color: var(--text);
+        }
+
+        body[data-theme="dark"] .lead,
+        body[data-theme="dark"] .panel-header p,
+        body[data-theme="dark"] .status,
+        body[data-theme="dark"] .sidebar-header p,
+        body[data-theme="dark"] .history-item span,
+        body[data-theme="dark"] .history-empty,
+        body[data-theme="dark"] .empty,
+        body[data-theme="dark"] .source,
+        body[data-theme="dark"] .meta small,
+        body[data-theme="dark"] .toggle,
+        body[data-theme="dark"] .theme-toggle {
+            color: #cbd5e1;
+        }
+
+        body[data-theme="dark"] textarea::placeholder {
+            color: #94a3b8;
+        }
+
+        body[data-theme="dark"] .answer {
+            background: rgba(15, 23, 42, 0.98);
+            border-color: rgba(20, 184, 166, 0.22);
+        }
+
+        body[data-theme="dark"] .btn-primary {
+            box-shadow: 0 12px 30px rgba(20, 184, 166, 0.18);
+        }
+
         @media (max-width: 900px) {
             .workspace { grid-template-columns: 1fr; }
             .sidebar { position: static; max-height: none; }
@@ -605,7 +647,7 @@ APP_HTML = r"""
                                 <div class="panel-header" style="margin-bottom:10px;">
                                     <div>
                                         <h2>Sources</h2>
-                                        <p>URLs referenced in the final answer.</p>
+                                        <p>URLs referenced by the research run.</p>
                                     </div>
                                 </div>
                                 <div class="sources" id="sources"></div>
@@ -684,20 +726,26 @@ APP_HTML = r"""
             return collapsed.length > limit ? `${collapsed.slice(0, limit).trimEnd()}...` : collapsed;
         };
 
-        const renderSelectedResult = (item) => {
-            if (!item) return;
+        const uniqueSourceUrls = (urls) => {
+            const seen = new Set();
+            const deduped = [];
 
-            document.getElementById('request_id').textContent = item.request_id || '-';
-            document.getElementById('iterations').textContent = item.iterations ?? '-';
-            document.getElementById('claims').textContent = item.total_claims ?? '-';
-            document.getElementById('answer').textContent = item.final_answer || 'No answer generated.';
+            (urls || []).forEach((url) => {
+                if (!url || seen.has(url)) return;
+                seen.add(url);
+                deduped.push(url);
+            });
 
+            return deduped;
+        };
+
+        const renderSourceLinks = (sourceUrls, fallbackText) => {
             const sources = document.getElementById('sources');
             sources.innerHTML = '';
 
-            const urlMatches = [...new Set((item.final_answer || '').match(/https?:\/\/[^\s)\]]+/g) || [])];
-            if (urlMatches.length) {
-                urlMatches.forEach((url) => {
+            const urls = uniqueSourceUrls(sourceUrls);
+            if (urls.length) {
+                urls.forEach((url) => {
                     const link = document.createElement('a');
                     link.className = 'source';
                     link.href = url;
@@ -706,12 +754,24 @@ APP_HTML = r"""
                     link.textContent = url;
                     sources.appendChild(link);
                 });
-            } else {
-                const emptySource = document.createElement('div');
-                emptySource.className = 'source';
-                emptySource.textContent = 'No explicit URLs found in the stored answer text.';
-                sources.appendChild(emptySource);
+                return;
             }
+
+            const emptySource = document.createElement('div');
+            emptySource.className = 'source';
+            emptySource.textContent = fallbackText || 'No source URLs available.';
+            sources.appendChild(emptySource);
+        };
+
+        const renderSelectedResult = (item) => {
+            if (!item) return;
+
+            document.getElementById('request_id').textContent = item.request_id || '-';
+            document.getElementById('iterations').textContent = item.iterations ?? '-';
+            document.getElementById('claims').textContent = item.total_claims ?? '-';
+            document.getElementById('answer').textContent = item.final_answer || 'No answer generated.';
+
+            renderSourceLinks(item.source_urls, 'No source URLs available.');
 
             emptyEl.style.display = 'none';
             outputEl.style.display = 'grid';
@@ -832,26 +892,7 @@ APP_HTML = r"""
                 document.getElementById('claims').textContent = data.total_claims;
                 document.getElementById('answer').textContent = data.final_answer || 'No answer generated.';
 
-                const sources = document.getElementById('sources');
-                sources.innerHTML = '';
-                const urlMatches = [...new Set((data.final_answer || '').match(/https?:\/\/[^\s)\]]+/g) || [])];
-
-                if (urlMatches.length) {
-                    urlMatches.forEach((url) => {
-                        const item = document.createElement('a');
-                        item.className = 'source';
-                        item.href = url;
-                        item.target = '_blank';
-                        item.rel = 'noreferrer';
-                        item.textContent = url;
-                        sources.appendChild(item);
-                    });
-                } else {
-                    const item = document.createElement('div');
-                    item.className = 'source';
-                    item.textContent = 'No explicit URLs found in the final answer text.';
-                    sources.appendChild(item);
-                }
+                renderSourceLinks(data.source_urls, 'No source URLs available.');
 
                 emptyEl.style.display = 'none';
                 outputEl.style.display = 'grid';
@@ -861,6 +902,7 @@ APP_HTML = r"""
                     request_id: data.request_id,
                     query,
                     final_answer: data.final_answer || '',
+                    source_urls: data.source_urls || [],
                     iterations: data.iterations,
                     total_claims: data.total_claims,
                     created_at: new Date().toISOString(),
@@ -887,6 +929,7 @@ class ResearchResponse(BaseModel):
     request_id: str
     query: str
     final_answer: str
+    source_urls: list[str]
     iterations: int
     total_claims: int
     elapsed_seconds: float
@@ -914,6 +957,7 @@ async def run_research(request: ResearchRequest):
                 request_id=request_id,
                 query=request.query,
                 final_answer=cached["answer"],
+                source_urls=cached.get("source_urls", []),
                 iterations=0,
                 total_claims=len(cached.get("claims", [])),
                 elapsed_seconds=0.0,
@@ -942,11 +986,20 @@ async def run_research(request: ResearchRequest):
     elapsed = round(time.perf_counter() - start, 3)
     summary = final_state.get("summary")
     total_claims = len(summary.claims) if summary else 0
+    source_urls = []
+    seen_urls = set()
+    for result in final_state.get("search_results", []):
+        url = getattr(result, "url", "")
+        if not url or not url.startswith("http") or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        source_urls.append(url)
 
     return ResearchResponse(
         request_id=request_id,
         query=request.query,
         final_answer=final_state.get("final_answer", ""),
+        source_urls=source_urls,
         iterations=final_state.get("iterations", 0),
         total_claims=total_claims,
         elapsed_seconds=elapsed,
