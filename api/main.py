@@ -594,13 +594,10 @@ APP_HTML = r"""
         }
 
         .message-sources {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
+            display: none;
         }
 
-        .message-source {
+        .sources-button {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -608,8 +605,89 @@ APP_HTML = r"""
             border-radius: 999px;
             border: 1px solid var(--line);
             background: rgba(255,255,255,0.78);
-            color: var(--muted);
+            color: var(--text);
             text-decoration: none;
+            cursor: pointer;
+            font: inherit;
+            margin-top: 12px;
+        }
+
+        .sources-button:hover {
+            border-color: rgba(15, 118, 110, 0.25);
+        }
+
+        .sources-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(2, 6, 23, 0.56);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+        }
+
+        .sources-modal.open {
+            display: flex;
+        }
+
+        .sources-modal-card {
+            width: min(680px, 100%);
+            max-height: min(72vh, 760px);
+            overflow: auto;
+            padding: 22px;
+            border-radius: 24px;
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            box-shadow: 0 30px 80px rgba(2, 6, 23, 0.35);
+        }
+
+        .sources-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .sources-modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .sources-modal-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .sources-modal-close {
+            appearance: none;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.86);
+            color: var(--text);
+            border-radius: 999px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .sources-modal-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .sources-modal-item {
+            display: block;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.8);
+            color: var(--text);
+            text-decoration: none;
+            word-break: break-word;
             font-size: 0.88rem;
         }
 
@@ -749,14 +827,19 @@ APP_HTML = r"""
         body[data-theme="dark"] .message-label,
         body[data-theme="dark"] .chat-header-meta,
         body[data-theme="dark"] .session-badge,
-        body[data-theme="dark"] .message-source,
+        body[data-theme="dark"] .sources-button,
+        body[data-theme="dark"] .sources-modal-close,
+        body[data-theme="dark"] .sources-modal-item,
         body[data-theme="dark"] .maker-copy span,
         body[data-theme="dark"] .maker-link {
             color: #cbd5e1;
         }
 
         body[data-theme="dark"] .maker-link,
-        body[data-theme="dark"] .maker-avatar {
+        body[data-theme="dark"] .maker-avatar,
+        body[data-theme="dark"] .sources-button,
+        body[data-theme="dark"] .sources-modal-close,
+        body[data-theme="dark"] .sources-modal-item {
             background: rgba(15, 23, 42, 0.96);
             border-color: rgba(148, 163, 184, 0.18);
         }
@@ -857,6 +940,19 @@ APP_HTML = r"""
         </div>
     </div>
 
+    <div class="sources-modal" id="sources_modal" aria-hidden="true">
+        <div class="sources-modal-card" role="dialog" aria-modal="true" aria-labelledby="sources_modal_title">
+            <div class="sources-modal-header">
+                <div>
+                    <h3 id="sources_modal_title">Sources</h3>
+                    <p>Referenced URLs for this answer.</p>
+                </div>
+                <button class="sources-modal-close" id="sources_modal_close" type="button" aria-label="Close sources popup">×</button>
+            </div>
+            <div class="sources-modal-list" id="sources_modal_list"></div>
+        </div>
+    </div>
+
     <script>
         const queryEl = document.getElementById('query');
         const useMemoryEl = document.getElementById('use_memory');
@@ -867,6 +963,9 @@ APP_HTML = r"""
         const newSessionBtn = document.getElementById('new_session');
         const sessionBadgeEl = document.getElementById('session_badge');
         const chatMessagesEl = document.getElementById('chat_messages');
+        const sourcesModalEl = document.getElementById('sources_modal');
+        const sourcesModalListEl = document.getElementById('sources_modal_list');
+        const sourcesModalCloseEl = document.getElementById('sources_modal_close');
         const themeToggleEl = document.getElementById('theme_toggle');
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
@@ -1019,6 +1118,36 @@ APP_HTML = r"""
             });
         };
 
+        const openSourcesModal = (sourceUrls) => {
+            const urls = uniqueSourceUrls(sourceUrls);
+            sourcesModalListEl.innerHTML = '';
+
+            if (!urls.length) {
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                empty.textContent = 'No source URLs available for this answer.';
+                sourcesModalListEl.appendChild(empty);
+            } else {
+                urls.forEach((url) => {
+                    const link = document.createElement('a');
+                    link.className = 'sources-modal-item';
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noreferrer';
+                    link.textContent = url;
+                    sourcesModalListEl.appendChild(link);
+                });
+            }
+
+            sourcesModalEl.classList.add('open');
+            sourcesModalEl.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeSourcesModal = () => {
+            sourcesModalEl.classList.remove('open');
+            sourcesModalEl.setAttribute('aria-hidden', 'true');
+        };
+
         const renderSessions = () => {
             sessionListEl.innerHTML = '';
 
@@ -1079,11 +1208,12 @@ APP_HTML = r"""
                 bubble.append(label, content);
 
                 if (message.role === 'assistant' && message.source_urls && message.source_urls.length) {
-                    const sources = document.createElement('div');
-                    sources.className = 'message-sources';
-                    renderSourceLinks(message.source_urls, sources);
-                    bubble.appendChild(sources);
-                    message.domSources = sources;
+                    const sourcesButton = document.createElement('button');
+                    sourcesButton.type = 'button';
+                    sourcesButton.className = 'sources-button';
+                    sourcesButton.textContent = `Sources (${uniqueSourceUrls(message.source_urls).length})`;
+                    sourcesButton.addEventListener('click', () => openSourcesModal(message.source_urls));
+                    bubble.appendChild(sourcesButton);
                 }
 
                 chatMessagesEl.appendChild(bubble);
@@ -1295,6 +1425,18 @@ APP_HTML = r"""
         });
 
         newSessionBtn.addEventListener('click', startNewSession);
+        sourcesModalCloseEl.addEventListener('click', closeSourcesModal);
+        sourcesModalEl.addEventListener('click', (event) => {
+            if (event.target === sourcesModalEl) {
+                closeSourcesModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeSourcesModal();
+            }
+        });
 
         clearBtn.addEventListener('click', () => {
             queryEl.value = '';
