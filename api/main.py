@@ -455,6 +455,71 @@ APP_HTML = r"""
             background: rgba(255,255,255,0.5);
         }
 
+        .maker-card {
+            margin-top: auto;
+            padding: 14px;
+            border-top: 1px solid var(--line);
+            display: grid;
+            gap: 12px;
+        }
+
+        .maker-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .maker-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 20px rgba(23, 23, 23, 0.08);
+            flex: 0 0 auto;
+        }
+
+        .maker-copy {
+            display: grid;
+            gap: 2px;
+        }
+
+        .maker-copy strong {
+            font-size: 0.98rem;
+            letter-spacing: -0.02em;
+        }
+
+        .maker-copy span {
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .maker-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .maker-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.78);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.86rem;
+            transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .maker-link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.25);
+            box-shadow: 0 10px 18px rgba(23, 23, 23, 0.06);
+        }
+
         .chat-shell {
             padding: 24px;
             min-height: calc(100vh - 96px);
@@ -684,8 +749,16 @@ APP_HTML = r"""
         body[data-theme="dark"] .message-label,
         body[data-theme="dark"] .chat-header-meta,
         body[data-theme="dark"] .session-badge,
-        body[data-theme="dark"] .message-source {
+        body[data-theme="dark"] .message-source,
+        body[data-theme="dark"] .maker-copy span,
+        body[data-theme="dark"] .maker-link {
             color: #cbd5e1;
+        }
+
+        body[data-theme="dark"] .maker-link,
+        body[data-theme="dark"] .maker-avatar {
+            background: rgba(15, 23, 42, 0.96);
+            border-color: rgba(148, 163, 184, 0.18);
         }
 
         body[data-theme="dark"] .btn-primary {
@@ -726,6 +799,21 @@ APP_HTML = r"""
                     </div>
                 </div>
                 <div class="history-list" id="history_list"></div>
+
+                <div class="maker-card" aria-label="Maker information">
+                    <div class="maker-top">
+                        <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
+                        <div class="maker-copy">
+                            <strong>Made by Swaroop Bhowmik</strong>
+                            <span>Built for Tarka</span>
+                        </div>
+                    </div>
+                    <div class="maker-links">
+                        <a class="maker-link" href="https://github.com/Aragog540" target="_blank" rel="noreferrer">GitHub</a>
+                        <a class="maker-link" href="https://linkedin.com/in/swaroop-bhowmik-8907b52a0/" target="_blank" rel="noreferrer">LinkedIn</a>
+                        <a class="maker-link" href="https://www.instagram.com/_.swar.oop._/" target="_blank" rel="noreferrer">Instagram</a>
+                    </div>
+                </div>
             </aside>
 
             <div class="main-column">
