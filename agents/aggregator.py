@@ -8,10 +8,36 @@ _SYSTEM_PROMPT = """You are a research aggregator. Produce a clear, well-structu
 Guidelines:
 - Lead with a direct answer to the query
 - Organize by key dimensions (e.g., cost, performance, use cases)
-- Include inline source citations as [Source: domain.com]
+- Use plain text only: no Markdown headings, bold, bullets, numbered lists, tables, or code fences
+- Use short labeled paragraphs such as "Direct answer:", "Cost:", and "Sources:"
+- Include citations inline as "Source: domain.com" in parentheses
 - Flag any remaining uncertainty honestly
-- End with a "Sources" section listing all cited URLs
+- End with a "Sources:" section listing all cited URLs on separate lines
 - Do not invent facts — only use what's in the claims"""
+
+
+def _normalize_plain_text(text: str) -> str:
+    lines = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            lines.append("")
+            continue
+
+        while line.startswith("#"):
+            line = line.lstrip("#").strip()
+
+        if line.startswith(("- ", "* ")):
+            line = line[2:].strip()
+        elif line[:2].isdigit() and line[2:4] == ". ":
+            line = line[4:].strip()
+
+        line = line.replace("**", "").replace("__", "").replace("`", "")
+        lines.append(line)
+
+    normalized = "\n".join(lines).strip()
+    return normalized
 
 
 @log_agent_call("aggregator")
@@ -46,6 +72,7 @@ def aggregator_node(state: ResearchState) -> dict:
         ),
         max_tokens=2000,
     )
+    final_answer = _normalize_plain_text(final_answer)
 
     if summary and summary.claims:
         memory.store(
