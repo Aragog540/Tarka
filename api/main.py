@@ -405,6 +405,8 @@ APP_HTML = r"""
             padding-right: 4px;
             flex: 1;
             min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
         }
 
         .history-item {
@@ -580,6 +582,32 @@ APP_HTML = r"""
             flex-direction: column;
             gap: 14px;
             padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+        }
+
+        .history-list::-webkit-scrollbar,
+        .chat-messages::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .history-list::-webkit-scrollbar-track,
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .history-list::-webkit-scrollbar-thumb,
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .history-list::-webkit-scrollbar-thumb:hover,
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.55);
+            background-clip: padding-box;
         }
 
         .message {
@@ -846,6 +874,24 @@ APP_HTML = r"""
         body[data-theme="dark"] .message.user {
             background: linear-gradient(135deg, rgba(20, 184, 166, 0.92), rgba(13, 148, 136, 0.98));
             color: #f8fafc;
+        }
+
+        body[data-theme="dark"] .intro {
+            background: rgba(15, 23, 42, 0.96);
+        }
+
+        body[data-theme="dark"] .eyebrow {
+            background: rgba(20, 184, 166, 0.16);
+            border-color: rgba(20, 184, 166, 0.22);
+            color: #d1fae5;
+        }
+
+        body[data-theme="dark"] h1 {
+            color: #f8fafc;
+        }
+
+        body[data-theme="dark"] .lead {
+            color: #cbd5e1;
         }
 
         body[data-theme="dark"] .message-label,
