@@ -50,6 +50,19 @@ APP_HTML = r"""
             --radius: 24px;
         }
 
+        body[data-theme="dark"] {
+            --bg: #0b1220;
+            --panel: rgba(15, 23, 42, 0.76);
+            --panel-strong: #111827;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --line: rgba(148, 163, 184, 0.18);
+            --accent: #14b8a6;
+            --accent-strong: #0f766e;
+            --accent-soft: rgba(20, 184, 166, 0.16);
+            --shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+        }
+
         * { box-sizing: border-box; }
 
         body {
@@ -61,12 +74,27 @@ APP_HTML = r"""
                 radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 30%),
                 radial-gradient(circle at top right, rgba(217, 119, 6, 0.12), transparent 24%),
                 linear-gradient(180deg, #f8f5ee 0%, #f3efe7 50%, #efe9dd 100%);
+            transition: background .2s ease, color .2s ease;
+        }
+
+        body[data-theme="dark"] {
+            background:
+                radial-gradient(circle at top left, rgba(20, 184, 166, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 22%),
+                linear-gradient(180deg, #0f172a 0%, #0b1220 54%, #08111d 100%);
         }
 
         .wrap {
             width: min(1120px, calc(100% - 32px));
             margin: 0 auto;
             padding: 32px 0 48px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
         }
 
         .hero {
@@ -338,7 +366,139 @@ APP_HTML = r"""
             background: rgba(255,255,255,0.55);
         }
 
+        .sidebar {
+            position: sticky;
+            top: 24px;
+            padding: 20px;
+            display: grid;
+            gap: 16px;
+            max-height: calc(100vh - 48px);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: -0.03em;
+        }
+
+        .sidebar-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 10px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .history-item {
+            width: 100%;
+            text-align: left;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.78);
+            padding: 14px;
+            cursor: pointer;
+            font: inherit;
+            color: var(--text);
+            transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .history-item:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.25);
+            box-shadow: 0 12px 24px rgba(23, 23, 23, 0.06);
+        }
+
+        .history-item strong {
+            display: block;
+            font-size: 0.96rem;
+            line-height: 1.45;
+            margin-bottom: 8px;
+        }
+
+        .history-item span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .history-empty {
+            color: var(--muted);
+            font-size: 0.94rem;
+            line-height: 1.55;
+            border: 1px dashed rgba(95, 91, 83, 0.28);
+            border-radius: 18px;
+            padding: 16px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .theme-toggle input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .theme-switch {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.28);
+            border: 1px solid var(--line);
+            flex: 0 0 auto;
+            transition: background .2s ease, border-color .2s ease;
+        }
+
+        .theme-switch::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--panel-strong);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+            transition: transform .2s ease, background .2s ease;
+        }
+
+        .theme-toggle input:checked + .theme-switch {
+            background: rgba(20, 184, 166, 0.32);
+            border-color: rgba(20, 184, 166, 0.38);
+        }
+
+        .theme-toggle input:checked + .theme-switch::after {
+            transform: translateX(20px);
+        }
+
         @media (max-width: 900px) {
+            .workspace { grid-template-columns: 1fr; }
+            .sidebar { position: static; max-height: none; }
             .hero { grid-template-columns: 1fr; }
             .meta { grid-template-columns: 1fr; }
         }
@@ -353,86 +513,108 @@ APP_HTML = r"""
 </head>
 <body>
     <div class="wrap">
-        <section class="hero">
-            <div class="card intro">
-                <div class="eyebrow">Multi-Agent Research Assistant</div>
-                <h1>Ask. Search. Critique. Answer.</h1>
-                <p class="lead">
-                    A clean, minimal research workspace built for demos. Enter a question, let the agent graph gather evidence,
-                    and review a concise answer with sources and iteration stats.
-                </p>
-            </div>
-            <div class="stats">
-                <div class="card stat">
-                    <strong>4</strong>
-                    <span>Specialized agent roles working through a LangGraph workflow</span>
-                </div>
-                <div class="card stat">
-                    <strong>3</strong>
-                    <span>Maximum loop iterations to keep the research bounded and fast</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="card panel grid">
-            <div>
-                <div class="panel-header">
+        <div class="workspace">
+            <aside class="card panel sidebar">
+                <div class="sidebar-header">
                     <div>
-                        <h2>Research query</h2>
-                        <p>Use a focused question to get a better result.</p>
+                        <h2>Chat history</h2>
+                        <p>Browse past research runs and restore them with one click.</p>
+                    </div>
+                    <div class="actions" style="gap:10px; justify-content:flex-end;">
+                        <label class="theme-toggle" for="theme_toggle">
+                            <input id="theme_toggle" type="checkbox" />
+                            <span class="theme-switch" aria-hidden="true"></span>
+                            <span>Dark</span>
+                        </label>
+                        <button class="btn btn-secondary" id="clear_history" type="button">Clear</button>
                     </div>
                 </div>
+                <div class="history-list" id="history_list"></div>
+            </aside>
 
-                <div class="form">
-                    <textarea id="query" placeholder="Example: Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">What are the best vector databases for a small production app?</textarea>
-
-                    <div class="chips" aria-label="Example queries">
-                        <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
-                        <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
-                        <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
+            <div class="main-column">
+                <section class="hero">
+                    <div class="card intro">
+                        <div class="eyebrow">Multi-Agent Research Assistant</div>
+                        <h1>Ask. Search. Critique. Answer.</h1>
+                        <p class="lead">
+                            A clean, minimal research workspace built for demos. Enter a question, let the agent graph gather evidence,
+                            and review a concise answer with sources and iteration stats.
+                        </p>
                     </div>
-
-                    <div class="row">
-                        <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
-                        <div class="actions">
-                            <button class="btn btn-secondary" id="clear">Clear</button>
-                            <button class="btn btn-primary" id="run">Run research</button>
+                    <div class="stats">
+                        <div class="card stat">
+                            <strong>4</strong>
+                            <span>Specialized agent roles working through a LangGraph workflow</span>
+                        </div>
+                        <div class="card stat">
+                            <strong>3</strong>
+                            <span>Maximum loop iterations to keep the research bounded and fast</span>
                         </div>
                     </div>
+                </section>
 
-                    <div class="status" id="status">Ready.</div>
-                </div>
-            </div>
-
-            <div class="result">
-                <div class="panel-header">
+                <section class="card panel grid">
                     <div>
-                        <h2>Result</h2>
-                        <p>Answer, metadata, and source list.</p>
-                    </div>
-                </div>
-
-                <div id="empty" class="empty">Run a query to see the research answer here.</div>
-
-                <div id="output" style="display:none; gap:18px;">
-                    <div class="meta">
-                        <div><small>Request ID</small><strong id="request_id">-</strong></div>
-                        <div><small>Iterations</small><strong id="iterations">-</strong></div>
-                        <div><small>Claims</small><strong id="claims">-</strong></div>
-                    </div>
-                    <div class="answer" id="answer"></div>
-                    <div>
-                        <div class="panel-header" style="margin-bottom:10px;">
+                        <div class="panel-header">
                             <div>
-                                <h2>Sources</h2>
-                                <p>URLs referenced in the final answer.</p>
+                                <h2>Research query</h2>
+                                <p>Use a focused question to get a better result.</p>
                             </div>
                         </div>
-                        <div class="sources" id="sources"></div>
+
+                        <div class="form">
+                            <textarea id="query" placeholder="Example: Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">What are the best vector databases for a small production app?</textarea>
+
+                            <div class="chips" aria-label="Example queries">
+                                <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
+                                <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
+                                <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
+                            </div>
+
+                            <div class="row">
+                                <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
+                                <div class="actions">
+                                    <button class="btn btn-secondary" id="clear" type="button">Clear</button>
+                                    <button class="btn btn-primary" id="run" type="button">Run research</button>
+                                </div>
+                            </div>
+
+                            <div class="status" id="status">Ready.</div>
+                        </div>
                     </div>
-                </div>
+
+                    <div class="result">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Result</h2>
+                                <p>Answer, metadata, and source list.</p>
+                            </div>
+                        </div>
+
+                        <div id="empty" class="empty">Run a query to see the research answer here.</div>
+
+                        <div id="output" style="display:none; gap:18px;">
+                            <div class="meta">
+                                <div><small>Request ID</small><strong id="request_id">-</strong></div>
+                                <div><small>Iterations</small><strong id="iterations">-</strong></div>
+                                <div><small>Claims</small><strong id="claims">-</strong></div>
+                            </div>
+                            <div class="answer" id="answer"></div>
+                            <div>
+                                <div class="panel-header" style="margin-bottom:10px;">
+                                    <div>
+                                        <h2>Sources</h2>
+                                        <p>URLs referenced in the final answer.</p>
+                                    </div>
+                                </div>
+                                <div class="sources" id="sources"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
     </div>
 
     <script>
@@ -443,8 +625,141 @@ APP_HTML = r"""
         const emptyEl = document.getElementById('empty');
         const runBtn = document.getElementById('run');
         const clearBtn = document.getElementById('clear');
+        const historyListEl = document.getElementById('history_list');
+        const clearHistoryBtn = document.getElementById('clear_history');
+        const themeToggleEl = document.getElementById('theme_toggle');
+        const HISTORY_KEY = 'research-chat-history';
+        const THEME_KEY = 'research-theme';
+        const MAX_HISTORY_ITEMS = 12;
+
+        let historyItems = [];
 
         const setStatus = (text) => { statusEl.textContent = text; };
+
+        const applyTheme = (theme) => {
+            document.body.dataset.theme = theme;
+            themeToggleEl.checked = theme === 'dark';
+        };
+
+        const loadTheme = () => {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            if (savedTheme === 'dark' || savedTheme === 'light') {
+                return savedTheme;
+            }
+
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+
+        const loadHistory = () => {
+            try {
+                const raw = localStorage.getItem(HISTORY_KEY);
+                historyItems = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(historyItems)) {
+                    historyItems = [];
+                }
+            } catch {
+                historyItems = [];
+            }
+        };
+
+        const saveHistory = () => {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(historyItems.slice(0, MAX_HISTORY_ITEMS)));
+        };
+
+        const formatTimestamp = (value) => {
+            try {
+                return new Intl.DateTimeFormat(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                }).format(new Date(value));
+            } catch {
+                return 'Recently';
+            }
+        };
+
+        const shortPreview = (text, limit = 120) => {
+            const collapsed = (text || '').replace(/\s+/g, ' ').trim();
+            return collapsed.length > limit ? `${collapsed.slice(0, limit).trimEnd()}...` : collapsed;
+        };
+
+        const renderSelectedResult = (item) => {
+            if (!item) return;
+
+            document.getElementById('request_id').textContent = item.request_id || '-';
+            document.getElementById('iterations').textContent = item.iterations ?? '-';
+            document.getElementById('claims').textContent = item.total_claims ?? '-';
+            document.getElementById('answer').textContent = item.final_answer || 'No answer generated.';
+
+            const sources = document.getElementById('sources');
+            sources.innerHTML = '';
+
+            const urlMatches = [...new Set((item.final_answer || '').match(/https?:\/\/[^\s)\]]+/g) || [])];
+            if (urlMatches.length) {
+                urlMatches.forEach((url) => {
+                    const link = document.createElement('a');
+                    link.className = 'source';
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noreferrer';
+                    link.textContent = url;
+                    sources.appendChild(link);
+                });
+            } else {
+                const emptySource = document.createElement('div');
+                emptySource.className = 'source';
+                emptySource.textContent = 'No explicit URLs found in the stored answer text.';
+                sources.appendChild(emptySource);
+            }
+
+            emptyEl.style.display = 'none';
+            outputEl.style.display = 'grid';
+            setStatus('Loaded from chat history.');
+        };
+
+        const renderHistory = () => {
+            historyListEl.innerHTML = '';
+
+            if (!historyItems.length) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'history-empty';
+                emptyState.textContent = 'Your recent research runs will appear here after you ask a question.';
+                historyListEl.appendChild(emptyState);
+                return;
+            }
+
+            historyItems.slice(0, MAX_HISTORY_ITEMS).forEach((item) => {
+                const button = document.createElement('button');
+                button.className = 'history-item';
+                button.type = 'button';
+                const title = document.createElement('strong');
+                title.textContent = item.query;
+
+                const preview = document.createElement('span');
+                preview.textContent = shortPreview(item.final_answer || 'No answer stored yet.');
+
+                const timestamp = document.createElement('span');
+                timestamp.textContent = formatTimestamp(item.created_at);
+
+                button.append(title, preview, timestamp);
+                button.addEventListener('click', () => {
+                    queryEl.value = item.query;
+                    renderSelectedResult(item);
+                });
+                historyListEl.appendChild(button);
+            });
+        };
+
+        const addHistoryItem = (item) => {
+            historyItems = [item, ...historyItems.filter((entry) => entry.request_id !== item.request_id)].slice(0, MAX_HISTORY_ITEMS);
+            saveHistory();
+            renderHistory();
+        };
+
+        loadHistory();
+        renderHistory();
+        applyTheme(loadTheme());
 
         document.querySelectorAll('[data-query]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -459,6 +774,20 @@ APP_HTML = r"""
             outputEl.style.display = 'none';
             emptyEl.style.display = 'block';
             setStatus('Cleared.');
+        });
+
+        clearHistoryBtn.addEventListener('click', () => {
+            historyItems = [];
+            saveHistory();
+            renderHistory();
+            setStatus('Chat history cleared.');
+        });
+
+        themeToggleEl.addEventListener('change', () => {
+            const theme = themeToggleEl.checked ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, theme);
+            applyTheme(theme);
+            setStatus(theme === 'dark' ? 'Dark theme enabled.' : 'Light theme enabled.');
         });
 
         runBtn.addEventListener('click', async () => {
@@ -527,6 +856,15 @@ APP_HTML = r"""
                 emptyEl.style.display = 'none';
                 outputEl.style.display = 'grid';
                 setStatus(data.from_memory ? 'Answered from memory cache.' : 'Research complete.');
+
+                addHistoryItem({
+                    request_id: data.request_id,
+                    query,
+                    final_answer: data.final_answer || '',
+                    iterations: data.iterations,
+                    total_claims: data.total_claims,
+                    created_at: new Date().toISOString(),
+                });
             } catch (error) {
                 setStatus(error.message || 'Something went wrong.');
             } finally {
