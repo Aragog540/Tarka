@@ -521,6 +521,17 @@ APP_HTML = r"""
             background: rgba(239, 68, 68, 0.08);
         }
 
+        .explicit-flag {
+            color: #b91c1c;
+            background: rgba(185,28,28,0.06);
+            border: 1px solid rgba(185,28,28,0.12);
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-size: 0.86rem;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
         .session-menu-backdrop {
             position: fixed;
             inset: 0;
@@ -1147,6 +1158,17 @@ APP_HTML = r"""
         const MAX_SESSIONS = 20;
         const MAX_CONTEXT_MESSAGES = 8;
 
+        // List of explicit words to flag in assistant messages. Case-insensitive, matched as whole words.
+        const EXPLICIT_WORDS = [
+            'fuck', 'shit', 'bitch', 'asshole', 'motherfucker', 'damn', 'crap'
+        ];
+
+        const containsExplicit = (text) => {
+            if (!text) return false;
+            const lower = text.toLowerCase();
+            return EXPLICIT_WORDS.some((w) => new RegExp('\\b' + w.replace(/[-\\/\\^$*+?.()|[\\]{}]/g, '\\$&') + '\\b', 'i').test(lower));
+        };
+
         let sessions = [];
         let activeSessionId = '';
         let activeStream = null;
@@ -1188,7 +1210,7 @@ APP_HTML = r"""
             }
 
             if (!sessions.length) {
-                const starter = createSession('Session 1');
+                const starter = createSession();
                 sessions = [starter];
                 activeSessionId = starter.id;
             }
@@ -1204,11 +1226,14 @@ APP_HTML = r"""
             localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId);
         };
 
-        function createSession(title = 'New session') {
+        function createSession(title) {
             const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+            // If no explicit title provided, generate a sequential Session #n title
+            const nextIndex = sessions && sessions.length ? sessions.length + 1 : 1;
+            const finalTitle = title ? String(title) : `Session ${nextIndex}`;
             return {
                 id,
-                title,
+                title: finalTitle,
                 created_at: nowIso(),
                 updated_at: nowIso(),
                 messages: [],
@@ -1394,7 +1419,7 @@ APP_HTML = r"""
 
                     sessions = sessions.filter((entry) => entry.id !== session.id);
                     if (!sessions.length) {
-                        const starter = createSession('Session 1');
+                        const starter = createSession();
                         sessions = [starter];
                         activeSessionId = starter.id;
                     } else if (activeSessionId === session.id) {
@@ -1462,6 +1487,14 @@ APP_HTML = r"""
                 message.domContent = content;
 
                 bubble.append(label, content);
+
+                // Flag explicit content in assistant messages
+                if (message.role === 'assistant' && containsExplicit(message.content)) {
+                    const flag = document.createElement('div');
+                    flag.className = 'explicit-flag';
+                    flag.textContent = 'Explicit content flagged';
+                    bubble.appendChild(flag);
+                }
 
                 if (message.role === 'assistant' && message.source_urls && message.source_urls.length) {
                     const sourcesButton = document.createElement('button');
@@ -1622,7 +1655,8 @@ APP_HTML = r"""
             };
 
             session.messages.push(userMessage, assistantMessage);
-            if (!session.title || session.title === 'New session' || session.title.startsWith('Session ')) {
+            // Preserve auto-generated "Session #n" titles; only replace if title is explicitly 'New session' or empty
+            if (!session.title || session.title === 'New session') {
                 session.title = shortPreview(query, 42);
             }
             session.updated_at = nowIso();
