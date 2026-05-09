@@ -1,4 +1,7 @@
-# Multi-Agent Research Assistant
+# Tarka
+
+Motivation
+Tarka was built to help researchers and engineers rapidly produce evidence-backed answers without spending hours locating and vetting sources. By orchestrating a set of specialized agents (planning, searching, summarizing, critiquing, and aggregating), Tarka automates the repetitive parts of literature review and technical research so humans can focus on interpretation and decision-making.
 
 A production-grade agentic research system built with LangGraph, where specialized agents collaborate to answer complex queries with verifiable, cited responses.
 
