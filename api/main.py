@@ -895,7 +895,7 @@ APP_HTML = r"""
             <aside class="card panel sidebar">
                 <div class="sidebar-header">
                     <div>
-                        <h2>Sessions</h2>
+                        <h2>Tarka AI</h2>
                         <p>Each conversation is stored as a separate session.</p>
                     </div>
                     <div class="actions" style="gap:10px; justify-content:flex-end;">
@@ -914,7 +914,7 @@ APP_HTML = r"""
                         <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
                         <div class="maker-copy">
                             <strong>Made by Swaroop Bhowmik</strong>
-                            <span>Built for Tarka</span>
+                            <span>Building Tarka</span>
                         </div>
                     </div>
                     <div class="maker-links">
