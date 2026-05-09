@@ -418,6 +418,8 @@ APP_HTML = r"""
             font: inherit;
             color: var(--text);
             transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+            display: grid;
+            gap: 10px;
         }
 
         .history-item:hover {
@@ -443,6 +445,28 @@ APP_HTML = r"""
             color: var(--muted);
             font-size: 0.88rem;
             line-height: 1.5;
+        }
+
+        .history-item-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .session-rename {
+            appearance: none;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.78);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 7px 10px;
+            font: inherit;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        .session-rename:hover {
+            border-color: rgba(15, 118, 110, 0.25);
+            color: var(--text);
         }
 
         .history-empty {
@@ -830,6 +854,7 @@ APP_HTML = r"""
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
         body[data-theme="dark"] .sources-modal-item,
+        body[data-theme="dark"] .session-rename,
         body[data-theme="dark"] .maker-copy span,
         body[data-theme="dark"] .maker-link {
             color: #cbd5e1;
@@ -839,7 +864,8 @@ APP_HTML = r"""
         body[data-theme="dark"] .maker-avatar,
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
-        body[data-theme="dark"] .sources-modal-item {
+        body[data-theme="dark"] .sources-modal-item,
+        body[data-theme="dark"] .session-rename {
             background: rgba(15, 23, 42, 0.96);
             border-color: rgba(148, 163, 184, 0.18);
         }
@@ -1160,9 +1186,10 @@ APP_HTML = r"""
             }
 
             sessions.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).forEach((session) => {
-                const button = document.createElement('button');
-                button.className = 'history-item' + (session.id === activeSessionId ? ' active' : '');
-                button.type = 'button';
+                const row = document.createElement('div');
+                row.className = 'history-item' + (session.id === activeSessionId ? ' active' : '');
+                row.setAttribute('role', 'button');
+                row.setAttribute('tabindex', '0');
 
                 const title = document.createElement('strong');
                 title.textContent = session.title || 'Untitled session';
@@ -1173,9 +1200,40 @@ APP_HTML = r"""
                 const timestamp = document.createElement('span');
                 timestamp.textContent = formatTimestamp(session.updated_at || session.created_at);
 
-                button.append(title, preview, timestamp);
-                button.addEventListener('click', () => setActiveSession(session.id));
-                sessionListEl.appendChild(button);
+                const actions = document.createElement('div');
+                actions.className = 'history-item-actions';
+
+                const renameButton = document.createElement('button');
+                renameButton.type = 'button';
+                renameButton.className = 'session-rename';
+                renameButton.textContent = 'Rename';
+                renameButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const currentTitle = session.title || 'Untitled session';
+                    const nextTitle = window.prompt('Rename this session', currentTitle);
+                    if (nextTitle === null) return;
+
+                    const trimmedTitle = nextTitle.trim();
+                    if (!trimmedTitle) return;
+
+                    session.title = trimmedTitle;
+                    session.updated_at = nowIso();
+                    saveSessions();
+                    renderSessions();
+                    renderMessages();
+                    setStatus(`Renamed session to "${trimmedTitle}".`);
+                });
+
+                actions.appendChild(renameButton);
+                row.append(title, preview, timestamp, actions);
+                row.addEventListener('click', () => setActiveSession(session.id));
+                row.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setActiveSession(session.id);
+                    }
+                });
+                sessionListEl.appendChild(row);
             });
         };
 
