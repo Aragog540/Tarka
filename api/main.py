@@ -479,9 +479,23 @@ APP_HTML = r"""
                     body: JSON.stringify({ query, use_memory: useMemoryEl.checked }),
                 });
 
-                const data = await response.json();
+                const contentType = response.headers.get('content-type') || '';
+                const responseText = await response.text();
+                let data = {};
+
+                if (responseText) {
+                    try {
+                        data = contentType.includes('application/json')
+                            ? JSON.parse(responseText)
+                            : { detail: responseText };
+                    } catch {
+                        data = { detail: responseText };
+                    }
+                }
+
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Research request failed.');
+                    const detail = data.detail || 'Research request failed.';
+                    throw new Error(detail.startsWith('<!DOCTYPE') ? 'Server returned HTML instead of JSON. Check the API URL or proxy configuration.' : detail);
                 }
 
                 document.getElementById('request_id').textContent = data.request_id;
