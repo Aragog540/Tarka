@@ -1010,6 +1010,31 @@ APP_HTML = r"""
             h1 { max-width: 100%; }
             .stats { grid-template-columns: 1fr; }
         }
+        /* Mobile orientation and touch optimizations */
+        .history-list, .chat-messages, .sources-modal-card {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (orientation: portrait) {
+            .workspace { grid-template-columns: 1fr; }
+            .sidebar { position: static; max-height: none; overflow: auto; }
+            .sidebar { padding: 14px; }
+            .wrap { padding-top: 18px; }
+            .chat-shell { padding: 16px; min-height: auto; }
+            .composer textarea { min-height: 88px; }
+            .history-list { max-height: 34vh; }
+            .sources-modal-card { width: min(92vw, 680px); max-height: 78vh; }
+            .history-item { padding: 12px; border-radius: 14px; }
+            .session-menu { left: auto; right: 8px; }
+        }
+
+        @media (orientation: landscape) and (max-width: 1024px) {
+            .workspace { grid-template-columns: 220px 1fr; gap: 12px; }
+            .sidebar { max-height: calc(100vh - 24px); overflow: auto; }
+            .chat-shell { padding: 18px; }
+            .history-list { max-height: calc(100vh - 160px); }
+            h1 { font-size: clamp(1.8rem, 3.2vw, 3.2rem); }
+        }
     </style>
 </head>
 <body>
