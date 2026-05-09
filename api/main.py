@@ -370,7 +370,8 @@ APP_HTML = r"""
             position: sticky;
             top: 24px;
             padding: 20px;
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 16px;
             max-height: calc(100vh - 48px);
             overflow: hidden;
@@ -402,6 +403,8 @@ APP_HTML = r"""
             gap: 10px;
             overflow: auto;
             padding-right: 4px;
+            flex: 1;
+            min-height: 0;
         }
 
         .history-item {
