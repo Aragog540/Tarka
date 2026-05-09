@@ -78,6 +78,9 @@ python run.py "Is GPT-4o better than Gemini 1.5 Pro for enterprise use?"
 uvicorn api.main:app --reload --port 8000
 ```
 
+**Web UI:**
+Open `http://localhost:8000/` for the minimalist browser interface. It posts to the same `/research` endpoint used by the API.
+
 **Docker:**
 ```bash
 docker-compose up --build

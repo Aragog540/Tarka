@@ -6,7 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from graph.research_graph import research_graph
@@ -28,6 +28,504 @@ app.add_middleware(
 )
 
 
+APP_HTML = r"""
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Research Assistant</title>
+    <style>
+        :root {
+            --bg: #f4f1ea;
+            --panel: rgba(255, 255, 255, 0.78);
+            --panel-strong: #ffffff;
+            --text: #171717;
+            --muted: #5f5b53;
+            --line: rgba(23, 23, 23, 0.12);
+            --accent: #0f766e;
+            --accent-strong: #115e59;
+            --accent-soft: rgba(15, 118, 110, 0.12);
+            --shadow: 0 20px 60px rgba(23, 23, 23, 0.10);
+            --radius: 24px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 30%),
+                radial-gradient(circle at top right, rgba(217, 119, 6, 0.12), transparent 24%),
+                linear-gradient(180deg, #f8f5ee 0%, #f3efe7 50%, #efe9dd 100%);
+        }
+
+        .wrap {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+            align-items: stretch;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .intro {
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intro::after {
+            content: "";
+            position: absolute;
+            inset: auto -40px -40px auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 68%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.86rem;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.4rem, 4vw, 4.4rem);
+            line-height: 0.96;
+            letter-spacing: -0.05em;
+            max-width: 12ch;
+        }
+
+        .lead {
+            margin: 16px 0 0;
+            max-width: 60ch;
+            color: var(--muted);
+            font-size: 1.02rem;
+            line-height: 1.65;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .stat {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.72));
+        }
+
+        .stat strong {
+            font-size: 2rem;
+            letter-spacing: -0.05em;
+        }
+
+        .stat span {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .panel {
+            padding: 24px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .form {
+            display: grid;
+            gap: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 18px 20px;
+            font: inherit;
+            line-height: 1.6;
+            background: rgba(255,255,255,0.92);
+            color: var(--text);
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        textarea:focus {
+            border-color: rgba(15, 118, 110, 0.45);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08);
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.8);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 9px 14px;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.96rem;
+            user-select: none;
+        }
+
+        .toggle input { width: 18px; height: 18px; }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            appearance: none;
+            border: 0;
+            border-radius: 999px;
+            padding: 13px 18px;
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+            transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+
+        .btn:active { transform: translateY(1px); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: white;
+            box-shadow: 0 12px 30px rgba(15, 118, 110, 0.24);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.86);
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+
+        .status {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .result {
+            display: grid;
+            gap: 18px;
+        }
+
+        .answer {
+            padding: 22px;
+            border-radius: 20px;
+            background: linear-gradient(180deg, rgba(15,118,110,0.08), rgba(255,255,255,0.9));
+            border: 1px solid rgba(15,118,110,0.12);
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .meta div {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid var(--line);
+        }
+
+        .meta small {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .sources {
+            display: grid;
+            gap: 10px;
+        }
+
+        .source {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            word-break: break-word;
+        }
+
+        .empty {
+            color: var(--muted);
+            border: 1px dashed rgba(95, 91, 83, 0.28);
+            border-radius: 18px;
+            padding: 18px;
+            background: rgba(255,255,255,0.55);
+        }
+
+        @media (max-width: 900px) {
+            .hero { grid-template-columns: 1fr; }
+            .meta { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            .wrap { width: min(100% - 20px, 1120px); padding-top: 20px; }
+            .intro, .panel { padding: 18px; }
+            h1 { max-width: 100%; }
+            .stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <section class="hero">
+            <div class="card intro">
+                <div class="eyebrow">Multi-Agent Research Assistant</div>
+                <h1>Ask. Search. Critique. Answer.</h1>
+                <p class="lead">
+                    A clean, minimal research workspace built for demos. Enter a question, let the agent graph gather evidence,
+                    and review a concise answer with sources and iteration stats.
+                </p>
+            </div>
+            <div class="stats">
+                <div class="card stat">
+                    <strong>4</strong>
+                    <span>Specialized agent roles working through a LangGraph workflow</span>
+                </div>
+                <div class="card stat">
+                    <strong>3</strong>
+                    <span>Maximum loop iterations to keep the research bounded and fast</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card panel grid">
+            <div>
+                <div class="panel-header">
+                    <div>
+                        <h2>Research query</h2>
+                        <p>Use a focused question to get a better result.</p>
+                    </div>
+                </div>
+
+                <div class="form">
+                    <textarea id="query" placeholder="Example: Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">What are the best vector databases for a small production app?</textarea>
+
+                    <div class="chips" aria-label="Example queries">
+                        <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
+                        <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
+                        <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
+                    </div>
+
+                    <div class="row">
+                        <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
+                        <div class="actions">
+                            <button class="btn btn-secondary" id="clear">Clear</button>
+                            <button class="btn btn-primary" id="run">Run research</button>
+                        </div>
+                    </div>
+
+                    <div class="status" id="status">Ready.</div>
+                </div>
+            </div>
+
+            <div class="result">
+                <div class="panel-header">
+                    <div>
+                        <h2>Result</h2>
+                        <p>Answer, metadata, and source list.</p>
+                    </div>
+                </div>
+
+                <div id="empty" class="empty">Run a query to see the research answer here.</div>
+
+                <div id="output" style="display:none; gap:18px;">
+                    <div class="meta">
+                        <div><small>Request ID</small><strong id="request_id">-</strong></div>
+                        <div><small>Iterations</small><strong id="iterations">-</strong></div>
+                        <div><small>Claims</small><strong id="claims">-</strong></div>
+                    </div>
+                    <div class="answer" id="answer"></div>
+                    <div>
+                        <div class="panel-header" style="margin-bottom:10px;">
+                            <div>
+                                <h2>Sources</h2>
+                                <p>URLs referenced in the final answer.</p>
+                            </div>
+                        </div>
+                        <div class="sources" id="sources"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const queryEl = document.getElementById('query');
+        const useMemoryEl = document.getElementById('use_memory');
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
+        const emptyEl = document.getElementById('empty');
+        const runBtn = document.getElementById('run');
+        const clearBtn = document.getElementById('clear');
+
+        const setStatus = (text) => { statusEl.textContent = text; };
+
+        document.querySelectorAll('[data-query]').forEach((button) => {
+            button.addEventListener('click', () => {
+                queryEl.value = button.dataset.query;
+                queryEl.focus();
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            queryEl.value = '';
+            queryEl.focus();
+            outputEl.style.display = 'none';
+            emptyEl.style.display = 'block';
+            setStatus('Cleared.');
+        });
+
+        runBtn.addEventListener('click', async () => {
+            const query = queryEl.value.trim();
+            if (!query) {
+                setStatus('Enter a query first.');
+                return;
+            }
+
+            runBtn.disabled = true;
+            runBtn.textContent = 'Researching...';
+            setStatus('Running the graph. This can take a moment.');
+
+            try {
+                const response = await fetch('/research', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, use_memory: useMemoryEl.checked }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Research request failed.');
+                }
+
+                document.getElementById('request_id').textContent = data.request_id;
+                document.getElementById('iterations').textContent = data.iterations;
+                document.getElementById('claims').textContent = data.total_claims;
+                document.getElementById('answer').textContent = data.final_answer || 'No answer generated.';
+
+                const sources = document.getElementById('sources');
+                sources.innerHTML = '';
+                const urlMatches = [...new Set((data.final_answer || '').match(/https?:\/\/[^\s)\]]+/g) || [])];
+
+                if (urlMatches.length) {
+                    urlMatches.forEach((url) => {
+                        const item = document.createElement('a');
+                        item.className = 'source';
+                        item.href = url;
+                        item.target = '_blank';
+                        item.rel = 'noreferrer';
+                        item.textContent = url;
+                        sources.appendChild(item);
+                    });
+                } else {
+                    const item = document.createElement('div');
+                    item.className = 'source';
+                    item.textContent = 'No explicit URLs found in the final answer text.';
+                    sources.appendChild(item);
+                }
+
+                emptyEl.style.display = 'none';
+                outputEl.style.display = 'grid';
+                setStatus(data.from_memory ? 'Answered from memory cache.' : 'Research complete.');
+            } catch (error) {
+                setStatus(error.message || 'Something went wrong.');
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run research';
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+
 class ResearchRequest(BaseModel):
     query: str
     use_memory: bool = True
@@ -41,6 +539,11 @@ class ResearchResponse(BaseModel):
     total_claims: int
     elapsed_seconds: float
     from_memory: bool
+
+
+@app.get("/", response_class=HTMLResponse)
+async def homepage():
+    return HTMLResponse(APP_HTML)
 
 
 @app.post("/research", response_model=ResearchResponse)
