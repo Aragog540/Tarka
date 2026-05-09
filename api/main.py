@@ -452,23 +452,85 @@ APP_HTML = r"""
         .history-item-actions {
             display: flex;
             justify-content: flex-end;
+            position: relative;
         }
 
-        .session-rename {
+        .session-menu-trigger {
             appearance: none;
             border: 1px solid var(--line);
             background: rgba(255,255,255,0.78);
             color: var(--muted);
             border-radius: 999px;
-            padding: 7px 10px;
+            width: 32px;
+            height: 32px;
             font: inherit;
-            font-size: 0.82rem;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
         }
 
-        .session-rename:hover {
+        .session-menu-trigger:hover {
             border-color: rgba(15, 118, 110, 0.25);
             color: var(--text);
+        }
+
+        .session-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            min-width: 148px;
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: var(--panel-strong);
+            box-shadow: 0 18px 40px rgba(23, 23, 23, 0.14);
+            display: none;
+            z-index: 10;
+        }
+
+        .session-menu.open {
+            display: grid;
+            gap: 6px;
+        }
+
+        .session-menu-item {
+            width: 100%;
+            text-align: left;
+            appearance: none;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text);
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.88rem;
+        }
+
+        .session-menu-item:hover {
+            background: rgba(15, 118, 110, 0.08);
+        }
+
+        .session-menu-item.danger {
+            color: #b91c1c;
+        }
+
+        .session-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .session-menu-backdrop {
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            display: none;
+            z-index: 9;
+        }
+
+        .session-menu-backdrop.open {
+            display: block;
         }
 
         .history-empty {
@@ -900,7 +962,9 @@ APP_HTML = r"""
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
         body[data-theme="dark"] .sources-modal-item,
-        body[data-theme="dark"] .session-rename,
+        body[data-theme="dark"] .session-menu-trigger,
+        body[data-theme="dark"] .session-menu,
+        body[data-theme="dark"] .session-menu-item,
         body[data-theme="dark"] .maker-copy span,
         body[data-theme="dark"] .maker-link {
             color: #cbd5e1;
@@ -911,9 +975,22 @@ APP_HTML = r"""
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
         body[data-theme="dark"] .sources-modal-item,
-        body[data-theme="dark"] .session-rename {
+        body[data-theme="dark"] .session-menu-trigger,
+        body[data-theme="dark"] .session-menu {
             background: rgba(15, 23, 42, 0.96);
             border-color: rgba(148, 163, 184, 0.18);
+        }
+
+        body[data-theme="dark"] .session-menu-item:hover {
+            background: rgba(20, 184, 166, 0.12);
+        }
+
+        body[data-theme="dark"] .session-menu-item.danger {
+            color: #fca5a5;
+        }
+
+        body[data-theme="dark"] .session-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.14);
         }
 
         body[data-theme="dark"] .btn-primary {
@@ -1246,15 +1323,25 @@ APP_HTML = r"""
                 const timestamp = document.createElement('span');
                 timestamp.textContent = formatTimestamp(session.updated_at || session.created_at);
 
-                const actions = document.createElement('div');
-                actions.className = 'history-item-actions';
+                const menuBackdrop = document.createElement('div');
+                menuBackdrop.className = 'session-menu-backdrop';
 
-                const renameButton = document.createElement('button');
-                renameButton.type = 'button';
-                renameButton.className = 'session-rename';
-                renameButton.textContent = 'Rename';
-                renameButton.addEventListener('click', (event) => {
+                const menu = document.createElement('div');
+                menu.className = 'session-menu';
+
+                const toggleMenu = (forceOpen = null) => {
+                    const isOpen = forceOpen === null ? !menu.classList.contains('open') : forceOpen;
+                    menu.classList.toggle('open', isOpen);
+                    menuBackdrop.classList.toggle('open', isOpen);
+                };
+
+                const renameItem = document.createElement('button');
+                renameItem.type = 'button';
+                renameItem.className = 'session-menu-item';
+                renameItem.textContent = 'Rename';
+                renameItem.addEventListener('click', (event) => {
                     event.stopPropagation();
+                    toggleMenu(false);
                     const currentTitle = session.title || 'Untitled session';
                     const nextTitle = window.prompt('Rename this session', currentTitle);
                     if (nextTitle === null) return;
@@ -1270,7 +1357,47 @@ APP_HTML = r"""
                     setStatus(`Renamed session to "${trimmedTitle}".`);
                 });
 
-                actions.appendChild(renameButton);
+                const deleteItem = document.createElement('button');
+                deleteItem.type = 'button';
+                deleteItem.className = 'session-menu-item danger';
+                deleteItem.textContent = 'Delete';
+                deleteItem.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    toggleMenu(false);
+                    const confirmDelete = window.confirm(`Delete session \"${session.title || 'Untitled session'}\"?`);
+                    if (!confirmDelete) return;
+
+                    sessions = sessions.filter((entry) => entry.id !== session.id);
+                    if (!sessions.length) {
+                        const starter = createSession('Session 1');
+                        sessions = [starter];
+                        activeSessionId = starter.id;
+                    } else if (activeSessionId === session.id) {
+                        activeSessionId = sessions[0].id;
+                    }
+
+                    saveSessions();
+                    renderSessions();
+                    renderMessages();
+                    setStatus('Session deleted.');
+                });
+
+                menu.append(renameItem, deleteItem);
+
+                const actions = document.createElement('div');
+                actions.className = 'history-item-actions';
+
+                const menuButton = document.createElement('button');
+                menuButton.type = 'button';
+                menuButton.className = 'session-menu-trigger';
+                menuButton.textContent = '⋯';
+                menuButton.setAttribute('aria-label', 'Session options');
+                menuButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    toggleMenu();
+                });
+
+                actions.append(menuButton, menu, menuBackdrop);
                 row.append(title, preview, timestamp, actions);
                 row.addEventListener('click', () => setActiveSession(session.id));
                 row.addEventListener('keydown', (event) => {
