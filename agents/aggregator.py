@@ -15,6 +15,11 @@ Guidelines:
 - Do not invent facts — only use what's in the claims"""
 
 
+def _conversation_context(state: ResearchState) -> str:
+    context = state.get("conversation_context", "").strip()
+    return f"\n\nConversation context:\n{context}" if context else ""
+
+
 def _normalize_plain_text(text: str) -> str:
     lines = []
 
@@ -45,6 +50,7 @@ def aggregator_node(state: ResearchState) -> dict:
     summary = state.get("summary")
     critique = state.get("critique")
     iterations = state.get("iterations", 0)
+    conversation_context = _conversation_context(state)
 
     claims_text = ""
     if summary and summary.claims:
@@ -57,19 +63,19 @@ def aggregator_node(state: ResearchState) -> dict:
     if critique and critique.verified_claims:
         verified_text = "\n".join(f"- {v}" for v in critique.verified_claims)
 
-    urls = []
+    source_urls = []
     seen_urls = set()
     for result in state.get("search_results", []):
         url = getattr(result, "url", "")
         if not url or not url.startswith("http") or url in seen_urls:
             continue
         seen_urls.add(url)
-        urls.append(url)
+        source_urls.append(url)
 
     final_answer = generate_text(
         _SYSTEM_PROMPT,
         (
-            f"Research query: {query}\n\n"
+            f"Research query: {query}{conversation_context}\n\n"
             f"Verified claims:\n{claims_text or 'None available'}\n\n"
             f"Critic-approved claims:\n{verified_text or 'None'}\n\n"
             f"Available source URLs are tracked separately for the UI and should not be repeated in the answer.\n\n"
@@ -84,7 +90,7 @@ def aggregator_node(state: ResearchState) -> dict:
             query=query,
             final_answer=final_answer,
             claims=[c.dict() for c in summary.claims],
-            source_urls=urls,
+            source_urls=source_urls,
         )
         logger.info("[aggregator] stored result in memory")
 
@@ -92,6 +98,7 @@ def aggregator_node(state: ResearchState) -> dict:
 
     return {
         "final_answer": final_answer,
+        "source_urls": source_urls,
         "agent_logs": [{
             "agent": "aggregator",
             "answer_length": len(final_answer),

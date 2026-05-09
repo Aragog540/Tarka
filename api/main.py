@@ -426,6 +426,11 @@ APP_HTML = r"""
             box-shadow: 0 12px 24px rgba(23, 23, 23, 0.06);
         }
 
+        .history-item.active {
+            border-color: rgba(15, 118, 110, 0.5);
+            box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
+        }
+
         .history-item strong {
             display: block;
             font-size: 0.96rem;
@@ -448,6 +453,131 @@ APP_HTML = r"""
             border-radius: 18px;
             padding: 16px;
             background: rgba(255,255,255,0.5);
+        }
+
+        .chat-shell {
+            padding: 24px;
+            min-height: calc(100vh - 96px);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .chat-header-meta {
+            display: grid;
+            gap: 8px;
+            text-align: right;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .chat-header-meta strong {
+            color: var(--text);
+            display: block;
+        }
+
+        .chat-messages {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-right: 4px;
+        }
+
+        .message {
+            max-width: min(820px, 92%);
+            padding: 16px 18px;
+            border-radius: 22px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 10px 30px rgba(23, 23, 23, 0.06);
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.96), rgba(17, 94, 89, 0.98));
+            color: white;
+            border-color: transparent;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.86);
+        }
+
+        .message-label {
+            display: block;
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 0.78;
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+
+        .message-sources {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .message-source {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.78);
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+        }
+
+        .composer {
+            border-top: 1px solid var(--line);
+            padding-top: 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .composer textarea {
+            min-height: 102px;
+            resize: none;
+        }
+
+        .composer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.74);
+            color: var(--muted);
+            font-size: 0.9rem;
         }
 
         .theme-toggle {
@@ -537,6 +667,27 @@ APP_HTML = r"""
             border-color: rgba(20, 184, 166, 0.22);
         }
 
+        body[data-theme="dark"] .message,
+        body[data-theme="dark"] .message.assistant,
+        body[data-theme="dark"] .message-source,
+        body[data-theme="dark"] .session-badge {
+            background: rgba(15, 23, 42, 0.96);
+            border-color: rgba(148, 163, 184, 0.18);
+            color: var(--text);
+        }
+
+        body[data-theme="dark"] .message.user {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.92), rgba(13, 148, 136, 0.98));
+            color: #f8fafc;
+        }
+
+        body[data-theme="dark"] .message-label,
+        body[data-theme="dark"] .chat-header-meta,
+        body[data-theme="dark"] .session-badge,
+        body[data-theme="dark"] .message-source {
+            color: #cbd5e1;
+        }
+
         body[data-theme="dark"] .btn-primary {
             box-shadow: 0 12px 30px rgba(20, 184, 166, 0.18);
         }
@@ -562,8 +713,8 @@ APP_HTML = r"""
             <aside class="card panel sidebar">
                 <div class="sidebar-header">
                     <div>
-                        <h2>Chat history</h2>
-                        <p>Browse past research runs and restore them with one click.</p>
+                        <h2>Sessions</h2>
+                        <p>Each conversation is stored as a separate session.</p>
                     </div>
                     <div class="actions" style="gap:10px; justify-content:flex-end;">
                         <label class="theme-toggle" for="theme_toggle">
@@ -571,89 +722,45 @@ APP_HTML = r"""
                             <span class="theme-switch" aria-hidden="true"></span>
                             <span>Dark</span>
                         </label>
-                        <button class="btn btn-secondary" id="clear_history" type="button">Clear</button>
+                        <button class="btn btn-secondary" id="new_session" type="button">New session</button>
                     </div>
                 </div>
                 <div class="history-list" id="history_list"></div>
             </aside>
 
             <div class="main-column">
-                <section class="hero">
-                    <div class="card intro">
-                        <div class="eyebrow">Tarka</div>
-                        <h1>Ask. Search. Critique. Answer.</h1>
-                        <p class="lead">
-                            A clean, minimal research workspace built for demos. Enter a question, let the agent graph gather evidence,
-                            and review a concise answer with sources and iteration stats.
-                        </p>
-                    </div>
-                    <div class="stats">
-                        <div class="card stat">
-                            <strong>4</strong>
-                            <span>Specialized agent roles working through a LangGraph workflow</span>
+                <section class="card chat-shell">
+                    <div class="chat-header">
+                        <div>
+                            <div class="eyebrow">Tarka</div>
+                            <h1>Research in a conversation.</h1>
+                            <p class="lead">
+                                Ask follow-ups, keep the thread, and watch answers stream into the session.
+                            </p>
                         </div>
-                        <div class="card stat">
-                            <strong>3</strong>
-                            <span>Maximum loop iterations to keep the research bounded and fast</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card panel grid">
-                    <div>
-                        <div class="panel-header">
-                            <div>
-                                <h2>Research query</h2>
-                                <p>Use a focused question to get a better result.</p>
-                            </div>
-                        </div>
-
-                        <div class="form">
-                            <textarea id="query" placeholder="Example: Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">What are the best vector databases for a small production app?</textarea>
-
-                            <div class="chips" aria-label="Example queries">
-                                <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
-                                <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
-                                <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
-                            </div>
-
-                            <div class="row">
-                                <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
-                                <div class="actions">
-                                    <button class="btn btn-secondary" id="clear" type="button">Clear</button>
-                                    <button class="btn btn-primary" id="run" type="button">Run research</button>
-                                </div>
-                            </div>
-
-                            <div class="status" id="status">Ready.</div>
+                        <div class="chat-header-meta">
+                            <span class="session-badge" id="session_badge">Session 1</span>
+                            <strong id="status">Ready.</strong>
+                            <span>Scroll through the transcript below.</span>
                         </div>
                     </div>
 
-                    <div class="result">
-                        <div class="panel-header">
-                            <div>
-                                <h2>Result</h2>
-                                <p>Answer, metadata, and source list.</p>
-                            </div>
+                    <div class="chat-messages" id="chat_messages"></div>
+
+                    <div class="composer">
+                        <div class="chips" aria-label="Example queries">
+                            <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
+                            <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
+                            <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
                         </div>
 
-                        <div id="empty" class="empty">Run a query to see the research answer here.</div>
+                        <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
 
-                        <div id="output" style="display:none; gap:18px;">
-                            <div class="meta">
-                                <div><small>Request ID</small><strong id="request_id">-</strong></div>
-                                <div><small>Iterations</small><strong id="iterations">-</strong></div>
-                                <div><small>Claims</small><strong id="claims">-</strong></div>
-                            </div>
-                            <div class="answer" id="answer"></div>
-                            <div>
-                                <div class="panel-header" style="margin-bottom:10px;">
-                                    <div>
-                                        <h2>Sources</h2>
-                                        <p>URLs referenced by the research run.</p>
-                                    </div>
-                                </div>
-                                <div class="sources" id="sources"></div>
+                        <div class="composer-row">
+                            <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
+                            <div class="actions">
+                                <button class="btn btn-secondary" id="clear" type="button">Clear input</button>
+                                <button class="btn btn-primary" id="run" type="button">Send</button>
                             </div>
                         </div>
                     </div>
@@ -666,19 +773,26 @@ APP_HTML = r"""
         const queryEl = document.getElementById('query');
         const useMemoryEl = document.getElementById('use_memory');
         const statusEl = document.getElementById('status');
-        const outputEl = document.getElementById('output');
-        const emptyEl = document.getElementById('empty');
         const runBtn = document.getElementById('run');
         const clearBtn = document.getElementById('clear');
-        const historyListEl = document.getElementById('history_list');
-        const clearHistoryBtn = document.getElementById('clear_history');
+        const sessionListEl = document.getElementById('history_list');
+        const newSessionBtn = document.getElementById('new_session');
+        const sessionBadgeEl = document.getElementById('session_badge');
+        const chatMessagesEl = document.getElementById('chat_messages');
         const themeToggleEl = document.getElementById('theme_toggle');
-        const HISTORY_KEY = 'research-chat-history';
+        const HISTORY_KEY = 'tarka-chat-sessions';
+        const ACTIVE_SESSION_KEY = 'tarka-active-session';
         const THEME_KEY = 'research-theme';
-        const MAX_HISTORY_ITEMS = 12;
+        const MAX_SESSIONS = 20;
+        const MAX_CONTEXT_MESSAGES = 8;
 
-        let historyItems = [];
+        let sessions = [];
+        let activeSessionId = '';
+        let activeStream = null;
+        let activeAssistantMessageId = null;
+        let activeRequestId = null;
 
+        const nowIso = () => new Date().toISOString();
         const setStatus = (text) => { statusEl.textContent = text; };
 
         const applyTheme = (theme) => {
@@ -695,20 +809,67 @@ APP_HTML = r"""
             return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         };
 
-        const loadHistory = () => {
+        const loadSessions = () => {
             try {
                 const raw = localStorage.getItem(HISTORY_KEY);
-                historyItems = raw ? JSON.parse(raw) : [];
-                if (!Array.isArray(historyItems)) {
-                    historyItems = [];
+                sessions = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(sessions)) {
+                    sessions = [];
                 }
             } catch {
-                historyItems = [];
+                sessions = [];
+            }
+
+            try {
+                activeSessionId = localStorage.getItem(ACTIVE_SESSION_KEY) || '';
+            } catch {
+                activeSessionId = '';
+            }
+
+            if (!sessions.length) {
+                const starter = createSession('Session 1');
+                sessions = [starter];
+                activeSessionId = starter.id;
+            }
+
+            if (!sessions.some((session) => session.id === activeSessionId)) {
+                activeSessionId = sessions[0].id;
             }
         };
 
-        const saveHistory = () => {
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(historyItems.slice(0, MAX_HISTORY_ITEMS)));
+        const saveSessions = () => {
+            sessions = sessions.slice(0, MAX_SESSIONS);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+            localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId);
+        };
+
+        function createSession(title = 'New session') {
+            const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+            return {
+                id,
+                title,
+                created_at: nowIso(),
+                updated_at: nowIso(),
+                messages: [],
+            };
+        }
+
+        const getActiveSession = () => sessions.find((session) => session.id === activeSessionId) || sessions[0];
+
+        const setActiveSession = (sessionId) => {
+            activeSessionId = sessionId;
+            const session = getActiveSession();
+            if (session) {
+                session.updated_at = nowIso();
+            }
+            saveSessions();
+            renderSessions();
+            renderMessages();
+        };
+
+        const shortPreview = (text, limit = 120) => {
+            const collapsed = (text || '').replace(/\s+/g, ' ').trim();
+            return collapsed.length > limit ? `${collapsed.slice(0, limit).trimEnd()}...` : collapsed;
         };
 
         const formatTimestamp = (value) => {
@@ -724,9 +885,14 @@ APP_HTML = r"""
             }
         };
 
-        const shortPreview = (text, limit = 120) => {
-            const collapsed = (text || '').replace(/\s+/g, ' ').trim();
-            return collapsed.length > limit ? `${collapsed.slice(0, limit).trimEnd()}...` : collapsed;
+        const buildConversationContext = (session) => {
+            if (!session || !session.messages.length) return '';
+
+            return session.messages
+                .filter((message) => message.content)
+                .slice(-MAX_CONTEXT_MESSAGES)
+                .map((message) => `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}`)
+                .join('\n');
         };
 
         const uniqueSourceUrls = (urls) => {
@@ -742,87 +908,296 @@ APP_HTML = r"""
             return deduped;
         };
 
-        const renderSourceLinks = (sourceUrls, fallbackText) => {
-            const sources = document.getElementById('sources');
-            sources.innerHTML = '';
-
+        const renderSourceLinks = (sourceUrls, container) => {
             const urls = uniqueSourceUrls(sourceUrls);
-            if (urls.length) {
-                urls.forEach((url) => {
-                    const link = document.createElement('a');
-                    link.className = 'source';
-                    link.href = url;
-                    link.target = '_blank';
-                    link.rel = 'noreferrer';
-                    link.textContent = url;
-                    sources.appendChild(link);
-                });
+            container.innerHTML = '';
+
+            if (!urls.length) {
+                const empty = document.createElement('div');
+                empty.className = 'session-badge';
+                empty.textContent = 'No source URLs available.';
+                container.appendChild(empty);
                 return;
             }
 
-            const emptySource = document.createElement('div');
-            emptySource.className = 'source';
-            emptySource.textContent = fallbackText || 'No source URLs available.';
-            sources.appendChild(emptySource);
-        };
-
-        const renderSelectedResult = (item) => {
-            if (!item) return;
-
-            document.getElementById('request_id').textContent = item.request_id || '-';
-            document.getElementById('iterations').textContent = item.iterations ?? '-';
-            document.getElementById('claims').textContent = item.total_claims ?? '-';
-            document.getElementById('answer').textContent = item.final_answer || 'No answer generated.';
-
-            renderSourceLinks(item.source_urls, 'No source URLs available.');
-
-            emptyEl.style.display = 'none';
-            outputEl.style.display = 'grid';
-            setStatus('Loaded from chat history.');
-        };
-
-        const renderHistory = () => {
-            historyListEl.innerHTML = '';
-
-            if (!historyItems.length) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'history-empty';
-                emptyState.textContent = 'Your recent research runs will appear here after you ask a question.';
-                historyListEl.appendChild(emptyState);
-                return;
-            }
-
-            historyItems.slice(0, MAX_HISTORY_ITEMS).forEach((item) => {
-                const button = document.createElement('button');
-                button.className = 'history-item';
-                button.type = 'button';
-                const title = document.createElement('strong');
-                title.textContent = item.query;
-
-                const preview = document.createElement('span');
-                preview.textContent = shortPreview(item.final_answer || 'No answer stored yet.');
-
-                const timestamp = document.createElement('span');
-                timestamp.textContent = formatTimestamp(item.created_at);
-
-                button.append(title, preview, timestamp);
-                button.addEventListener('click', () => {
-                    queryEl.value = item.query;
-                    renderSelectedResult(item);
-                });
-                historyListEl.appendChild(button);
+            urls.forEach((url) => {
+                const link = document.createElement('a');
+                link.className = 'message-source';
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noreferrer';
+                link.textContent = url;
+                container.appendChild(link);
             });
         };
 
-        const addHistoryItem = (item) => {
-            historyItems = [item, ...historyItems.filter((entry) => entry.request_id !== item.request_id)].slice(0, MAX_HISTORY_ITEMS);
-            saveHistory();
-            renderHistory();
+        const renderSessions = () => {
+            sessionListEl.innerHTML = '';
+
+            if (!sessions.length) {
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                empty.textContent = 'Start a session to keep a running chat log.';
+                sessionListEl.appendChild(empty);
+                return;
+            }
+
+            sessions.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).forEach((session) => {
+                const button = document.createElement('button');
+                button.className = 'history-item' + (session.id === activeSessionId ? ' active' : '');
+                button.type = 'button';
+
+                const title = document.createElement('strong');
+                title.textContent = session.title || 'Untitled session';
+
+                const preview = document.createElement('span');
+                preview.textContent = `${session.messages.length} message${session.messages.length === 1 ? '' : 's'}`;
+
+                const timestamp = document.createElement('span');
+                timestamp.textContent = formatTimestamp(session.updated_at || session.created_at);
+
+                button.append(title, preview, timestamp);
+                button.addEventListener('click', () => setActiveSession(session.id));
+                sessionListEl.appendChild(button);
+            });
         };
 
-        loadHistory();
-        renderHistory();
+        const renderMessages = () => {
+            const session = getActiveSession();
+            chatMessagesEl.innerHTML = '';
+
+            if (!session || !session.messages.length) {
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                empty.textContent = 'Ask a question to begin a research session. Follow-up questions stay in the same thread.';
+                chatMessagesEl.appendChild(empty);
+                sessionBadgeEl.textContent = session?.title || 'Session';
+                return;
+            }
+
+            session.messages.forEach((message) => {
+                const bubble = document.createElement('article');
+                bubble.className = `message ${message.role}`;
+
+                const label = document.createElement('span');
+                label.className = 'message-label';
+                label.textContent = message.role === 'user' ? 'You' : 'Tarka';
+
+                const content = document.createElement('div');
+                content.className = 'message-content';
+                content.textContent = message.content || (message.role === 'assistant' && message.isStreaming ? 'Thinking...' : '');
+                message.domContent = content;
+
+                bubble.append(label, content);
+
+                if (message.role === 'assistant' && message.source_urls && message.source_urls.length) {
+                    const sources = document.createElement('div');
+                    sources.className = 'message-sources';
+                    renderSourceLinks(message.source_urls, sources);
+                    bubble.appendChild(sources);
+                    message.domSources = sources;
+                }
+
+                chatMessagesEl.appendChild(bubble);
+            });
+
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            sessionBadgeEl.textContent = session.title || 'Session';
+        };
+
+        const updateActiveAssistant = (patch) => {
+            const session = getActiveSession();
+            if (!session || !activeAssistantMessageId) return;
+
+            const assistant = session.messages.find((message) => message.id === activeAssistantMessageId);
+            if (!assistant) return;
+
+            Object.assign(assistant, patch);
+            session.updated_at = nowIso();
+            saveSessions();
+            renderMessages();
+            renderSessions();
+        };
+
+        const stopActiveStream = () => {
+            if (activeStream) {
+                activeStream.close();
+                activeStream = null;
+            }
+        };
+
+        const startNewSession = () => {
+            stopActiveStream();
+            const session = createSession(`Session ${sessions.length + 1}`);
+            sessions.unshift(session);
+            activeSessionId = session.id;
+            activeAssistantMessageId = null;
+            activeRequestId = null;
+            saveSessions();
+            renderSessions();
+            renderMessages();
+            queryEl.value = '';
+            queryEl.focus();
+            setStatus('New session created.');
+        };
+
+        const streamAnswer = ({ query, context, useMemory }) => new Promise((resolve, reject) => {
+            const params = new URLSearchParams({
+                query,
+                context,
+                use_memory: useMemory ? '1' : '0',
+            });
+
+            const source = new EventSource(`/research/stream?${params.toString()}`);
+            activeStream = source;
+            let finished = false;
+
+            const finish = (payload) => {
+                finished = true;
+                stopActiveStream();
+                resolve(payload || {});
+            };
+
+            source.onmessage = (event) => {
+                if (!event.data || event.data === '[DONE]') {
+                    return;
+                }
+
+                let payload;
+                try {
+                    payload = JSON.parse(event.data);
+                } catch {
+                    return;
+                }
+
+                if (payload.type === 'delta') {
+                    if (activeAssistantMessageId) {
+                        const session = getActiveSession();
+                        const assistant = session?.messages.find((message) => message.id === activeAssistantMessageId);
+                        if (assistant) {
+                            assistant.content = (assistant.content || '') + (payload.data?.delta || '');
+                            session.updated_at = nowIso();
+                            saveSessions();
+                            renderMessages();
+                        }
+                    }
+                    return;
+                }
+
+                if (payload.type === 'node') {
+                    const nodeName = payload.node || 'research';
+                    if (nodeName === 'supervisor') setStatus('Planning the research path...');
+                    else if (nodeName === 'searcher') setStatus('Searching sources...');
+                    else if (nodeName === 'summarizer') setStatus('Summarizing evidence...');
+                    else if (nodeName === 'critic') setStatus('Reviewing gaps...');
+                    else if (nodeName === 'aggregator') setStatus('Finishing the answer...');
+                    return;
+                }
+
+                if (payload.type === 'final') {
+                    if (payload.data?.source_urls) {
+                        updateActiveAssistant({ source_urls: payload.data.source_urls });
+                    }
+                    activeRequestId = payload.data?.request_id || activeRequestId;
+                    resolve(payload.data || {});
+                    finish(payload.data || {});
+                    return;
+                }
+
+                if (payload.type === 'done') {
+                    finish(payload.data || {});
+                }
+            };
+
+            source.onerror = () => {
+                if (finished) return;
+                stopActiveStream();
+                reject(new Error('Streaming connection failed.'));
+            };
+        });
+
+        const sendMessage = async () => {
+            const query = queryEl.value.trim();
+            if (!query) {
+                setStatus('Enter a query first.');
+                return;
+            }
+
+            const session = getActiveSession();
+            if (!session) {
+                setStatus('No active session available.');
+                return;
+            }
+
+            stopActiveStream();
+
+            const conversationContext = buildConversationContext(session);
+            const userMessage = {
+                id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+                role: 'user',
+                content: query,
+                created_at: nowIso(),
+            };
+            const assistantMessage = {
+                id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-assistant`,
+                role: 'assistant',
+                content: '',
+                source_urls: [],
+                isStreaming: true,
+                created_at: nowIso(),
+            };
+
+            session.messages.push(userMessage, assistantMessage);
+            if (!session.title || session.title === 'New session' || session.title.startsWith('Session ')) {
+                session.title = shortPreview(query, 42);
+            }
+            session.updated_at = nowIso();
+            activeAssistantMessageId = assistantMessage.id;
+            activeRequestId = null;
+            saveSessions();
+            renderSessions();
+            renderMessages();
+
+            queryEl.value = '';
+            runBtn.disabled = true;
+            runBtn.textContent = 'Streaming...';
+            setStatus('Streaming the answer into the session.');
+
+            try {
+                const finalPayload = await streamAnswer({
+                    query,
+                    context: conversationContext,
+                    useMemory: useMemoryEl.checked,
+                });
+
+                updateActiveAssistant({
+                    content: finalPayload.final_answer || getActiveSession()?.messages.find((message) => message.id === activeAssistantMessageId)?.content || 'No answer generated.',
+                    source_urls: finalPayload.source_urls || getActiveSession()?.messages.find((message) => message.id === activeAssistantMessageId)?.source_urls || [],
+                    isStreaming: false,
+                });
+
+                session.updated_at = nowIso();
+                saveSessions();
+                renderSessions();
+                renderMessages();
+
+                setStatus(finalPayload.from_memory ? 'Answered from memory cache.' : 'Research complete.');
+            } catch (error) {
+                updateActiveAssistant({
+                    content: error.message || 'Something went wrong while streaming the answer.',
+                    isStreaming: false,
+                });
+                setStatus(error.message || 'Something went wrong.');
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Send';
+            }
+        };
+
+        loadSessions();
         applyTheme(loadTheme());
+        renderSessions();
+        renderMessages();
 
         document.querySelectorAll('[data-query]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -831,19 +1206,12 @@ APP_HTML = r"""
             });
         });
 
+        newSessionBtn.addEventListener('click', startNewSession);
+
         clearBtn.addEventListener('click', () => {
             queryEl.value = '';
             queryEl.focus();
-            outputEl.style.display = 'none';
-            emptyEl.style.display = 'block';
-            setStatus('Cleared.');
-        });
-
-        clearHistoryBtn.addEventListener('click', () => {
-            historyItems = [];
-            saveHistory();
-            renderHistory();
-            setStatus('Chat history cleared.');
+            setStatus('Input cleared.');
         });
 
         themeToggleEl.addEventListener('change', () => {
@@ -853,68 +1221,12 @@ APP_HTML = r"""
             setStatus(theme === 'dark' ? 'Dark theme enabled.' : 'Light theme enabled.');
         });
 
-        runBtn.addEventListener('click', async () => {
-            const query = queryEl.value.trim();
-            if (!query) {
-                setStatus('Enter a query first.');
-                return;
-            }
+        runBtn.addEventListener('click', sendMessage);
 
-            runBtn.disabled = true;
-            runBtn.textContent = 'Researching...';
-            setStatus('Running the graph. This can take a moment.');
-
-            try {
-                const response = await fetch('/research', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query, use_memory: useMemoryEl.checked }),
-                });
-
-                const contentType = response.headers.get('content-type') || '';
-                const responseText = await response.text();
-                let data = {};
-
-                if (responseText) {
-                    try {
-                        data = contentType.includes('application/json')
-                            ? JSON.parse(responseText)
-                            : { detail: responseText };
-                    } catch {
-                        data = { detail: responseText };
-                    }
-                }
-
-                if (!response.ok) {
-                    const detail = data.detail || 'Research request failed.';
-                    throw new Error(detail.startsWith('<!DOCTYPE') ? 'Server returned HTML instead of JSON. Check the API URL or proxy configuration.' : detail);
-                }
-
-                document.getElementById('request_id').textContent = data.request_id;
-                document.getElementById('iterations').textContent = data.iterations;
-                document.getElementById('claims').textContent = data.total_claims;
-                document.getElementById('answer').textContent = data.final_answer || 'No answer generated.';
-
-                renderSourceLinks(data.source_urls, 'No source URLs available.');
-
-                emptyEl.style.display = 'none';
-                outputEl.style.display = 'grid';
-                setStatus(data.from_memory ? 'Answered from memory cache.' : 'Research complete.');
-
-                addHistoryItem({
-                    request_id: data.request_id,
-                    query,
-                    final_answer: data.final_answer || '',
-                    source_urls: data.source_urls || [],
-                    iterations: data.iterations,
-                    total_claims: data.total_claims,
-                    created_at: new Date().toISOString(),
-                });
-            } catch (error) {
-                setStatus(error.message || 'Something went wrong.');
-            } finally {
-                runBtn.disabled = false;
-                runBtn.textContent = 'Run research';
+        queryEl.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                sendMessage();
             }
         });
     </script>
@@ -926,6 +1238,7 @@ APP_HTML = r"""
 class ResearchRequest(BaseModel):
     query: str
     use_memory: bool = True
+    conversation_context: str = ""
 
 
 class ResearchResponse(BaseModel):
@@ -937,6 +1250,37 @@ class ResearchResponse(BaseModel):
     total_claims: int
     elapsed_seconds: float
     from_memory: bool
+
+
+def _source_urls_from_results(results: list) -> list[str]:
+    source_urls = []
+    seen_urls = set()
+    for result in results:
+        url = getattr(result, "url", "")
+        if not url or not url.startswith("http") or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        source_urls.append(url)
+    return source_urls
+
+
+def _chunk_text(text: str, chunk_size: int = 24) -> list[str]:
+    words = text.split()
+    if not words:
+        return []
+
+    chunks = []
+    current = []
+    for word in words:
+        current.append(word)
+        if len(current) >= chunk_size:
+            chunks.append(" ".join(current))
+            current = []
+
+    if current:
+        chunks.append(" ".join(current))
+
+    return chunks
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -971,11 +1315,13 @@ async def run_research(request: ResearchRequest):
 
     initial_state = {
         "query": request.query,
+        "conversation_context": request.conversation_context,
         "search_results": [],
         "summary": None,
         "critique": None,
         "iterations": 0,
         "final_answer": "",
+        "source_urls": [],
         "agent_logs": [],
         "error": None,
     }
@@ -989,14 +1335,7 @@ async def run_research(request: ResearchRequest):
     elapsed = round(time.perf_counter() - start, 3)
     summary = final_state.get("summary")
     total_claims = len(summary.claims) if summary else 0
-    source_urls = []
-    seen_urls = set()
-    for result in final_state.get("search_results", []):
-        url = getattr(result, "url", "")
-        if not url or not url.startswith("http") or url in seen_urls:
-            continue
-        seen_urls.add(url)
-        source_urls.append(url)
+    source_urls = final_state.get("source_urls", []) or _source_urls_from_results(final_state.get("search_results", []))
 
     return ResearchResponse(
         request_id=request_id,
@@ -1011,25 +1350,48 @@ async def run_research(request: ResearchRequest):
 
 
 @app.get("/research/stream")
-async def stream_research(query: str):
+async def stream_research(query: str, context: str = "", use_memory: bool = True):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
     async def event_generator() -> AsyncGenerator[str, None]:
+        request_id = str(uuid.uuid4())[:8]
+        latest_summary = None
+        latest_iterations = 0
+
+        if use_memory:
+            cached = memory.has_recent_answer(query)
+            if cached:
+                cached_answer = cached["answer"]
+                cached_source_urls = cached.get("source_urls", [])
+                for chunk in _chunk_text(cached_answer):
+                    yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
+                    await asyncio.sleep(0)
+                yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': cached_answer, 'source_urls': cached_source_urls, 'iterations': 0, 'total_claims': len(cached.get('claims', [])), 'from_memory': True}})}\n\n"
+                return
+
         initial_state = {
             "query": query,
+            "conversation_context": context,
             "search_results": [],
             "summary": None,
             "critique": None,
             "iterations": 0,
             "final_answer": "",
+            "source_urls": [],
             "agent_logs": [],
             "error": None,
         }
 
         for event in research_graph.stream(initial_state):
             for node_name, node_output in event.items():
+                if node_output.get("iterations") is not None:
+                    latest_iterations = node_output.get("iterations", latest_iterations)
+                if node_name == "summarizer":
+                    latest_summary = node_output.get("summary", latest_summary)
+
                 payload = {
+                    "type": "node",
                     "node": node_name,
                     "data": {
                         "iterations": node_output.get("iterations"),
@@ -1038,9 +1400,20 @@ async def stream_research(query: str):
                 }
                 if node_name == "aggregator":
                     payload["data"]["final_answer"] = node_output.get("final_answer", "")
+                    payload["data"]["source_urls"] = node_output.get("source_urls", [])
 
                 yield f"data: {json.dumps(payload)}\n\n"
                 await asyncio.sleep(0)
+
+                if node_name == "aggregator":
+                    final_answer = node_output.get("final_answer", "")
+                    source_urls = node_output.get("source_urls", [])
+                    for chunk in _chunk_text(final_answer):
+                        yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
+                        await asyncio.sleep(0)
+                    total_claims = len(latest_summary.claims) if latest_summary else 0
+                    yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': final_answer, 'source_urls': source_urls, 'iterations': latest_iterations, 'total_claims': total_claims, 'from_memory': False}})}\n\n"
+                    return
 
         yield "data: [DONE]\n\n"
 

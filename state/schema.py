@@ -37,10 +37,12 @@ class Critique(BaseModel):
 
 class ResearchState(TypedDict):
     query: str
+    conversation_context: str
     search_results: Annotated[List[SearchResult], operator.add]
     summary: Optional[Summary]
     critique: Optional[Critique]
     iterations: int
     final_answer: str
+    source_urls: List[str]
     agent_logs: Annotated[List[dict], operator.add]
     error: Optional[str]

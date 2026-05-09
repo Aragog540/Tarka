@@ -21,13 +21,18 @@ Return ONLY valid JSON:
 }"""
 
 
-def _generate_sub_queries(query: str, critique_gaps: List[dict] = None) -> List[str]:
+def _conversation_context(state: ResearchState) -> str:
+    context = state.get("conversation_context", "").strip()
+    return f"\n\nConversation context:\n{context}" if context else ""
+
+
+def _generate_sub_queries(query: str, critique_gaps: List[dict] = None, conversation_context: str = "") -> List[str]:
     context = ""
     if critique_gaps:
         gap_descriptions = [g["suggested_query"] for g in critique_gaps]
         context = f"\n\nTarget these specific gaps:\n" + "\n".join(f"- {q}" for q in gap_descriptions)
 
-    raw = json.loads(generate_text(_SUB_QUERY_PROMPT, f"Query: {query}{context}", max_tokens=500, json_mode=True))
+    raw = json.loads(generate_text(_SUB_QUERY_PROMPT, f"Query: {query}{conversation_context}{context}", max_tokens=500, json_mode=True))
     return raw["sub_queries"]
 
 
@@ -85,9 +90,10 @@ def _memory_search(query: str) -> List[SearchResult]:
 def searcher_node(state: ResearchState) -> dict:
     query = state["query"]
     critique = state.get("critique")
+    conversation_context = _conversation_context(state)
 
     critique_gaps = critique.gaps if critique else []
-    sub_queries = _generate_sub_queries(query, [g.dict() for g in critique_gaps] if critique_gaps else None)
+    sub_queries = _generate_sub_queries(query, [g.dict() for g in critique_gaps] if critique_gaps else None, conversation_context)
 
     logger.info(f"[searcher] sub_queries={sub_queries}")
 

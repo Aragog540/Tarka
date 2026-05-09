@@ -29,6 +29,11 @@ _MAX_CHARS_PER_RESULT = 300
 _MAX_TOTAL_RESULT_CHARS = 3000
 
 
+def _conversation_context(state: ResearchState) -> str:
+    context = state.get("conversation_context", "").strip()
+    return f"\n\nConversation context:\n{context}" if context else ""
+
+
 def _format_results(results: list[SearchResult]) -> str:
     formatted = []
     total_chars = 0
@@ -47,6 +52,7 @@ def _format_results(results: list[SearchResult]) -> str:
 def summarizer_node(state: ResearchState) -> dict:
     query = state["query"]
     results = state["search_results"]
+    conversation_context = _conversation_context(state)
 
     if not results:
         logger.warning("[summarizer] no search results to summarize")
@@ -57,7 +63,7 @@ def summarizer_node(state: ResearchState) -> dict:
 
     formatted = _format_results(results)
 
-    raw = json.loads(generate_text(_SYSTEM_PROMPT, f"Research query: {query}\n\nSearch results:\n{formatted}", max_tokens=1500, json_mode=True))
+    raw = json.loads(generate_text(_SYSTEM_PROMPT, f"Research query: {query}{conversation_context}\n\nSearch results:\n{formatted}", max_tokens=1500, json_mode=True))
 
     claims = [Claim(**c) for c in raw["claims"]]
     summary = Summary(claims=claims, raw_summary=raw["raw_summary"])

@@ -24,11 +24,17 @@ Continue (should_continue=true) only if there are 2+ significant gaps that would
 Do NOT continue if gaps are minor or stylistic."""
 
 
+def _conversation_context(state: ResearchState) -> str:
+    context = state.get("conversation_context", "").strip()
+    return f"\n\nConversation context:\n{context}" if context else ""
+
+
 @log_agent_call("critic")
 def critic_node(state: ResearchState) -> dict:
     query = state["query"]
     summary = state.get("summary")
     iterations = state.get("iterations", 0)
+    conversation_context = _conversation_context(state)
 
     if iterations >= MAX_ITERATIONS:
         logger.info(f"[critic] max iterations ({MAX_ITERATIONS}) reached — forcing stop")
@@ -68,7 +74,7 @@ def critic_node(state: ResearchState) -> dict:
     raw = json.loads(generate_text(
         _SYSTEM_PROMPT,
         (
-            f"Research query: {query}\n\n"
+            f"Research query: {query}{conversation_context}\n\n"
             f"Current claims ({len(summary.claims)} total):\n{claims_text}\n\n"
             f"Summary: {summary.raw_summary}\n\n"
             f"This is iteration {iterations + 1} of {MAX_ITERATIONS}."
