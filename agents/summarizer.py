@@ -24,11 +24,22 @@ Rules:
 - Prefer specific facts over generalizations
 - Maximum 8 claims"""
 
+_MAX_RESULTS_FOR_PROMPT = 5
+_MAX_CHARS_PER_RESULT = 300
+_MAX_TOTAL_RESULT_CHARS = 3000
+
 
 def _format_results(results: list[SearchResult]) -> str:
     formatted = []
-    for i, r in enumerate(results, 1):
-        formatted.append(f"[{i}] Source: {r.source}\nURL: {r.url}\nContent: {r.content[:800]}")
+    total_chars = 0
+    for i, r in enumerate(results[:_MAX_RESULTS_FOR_PROMPT], 1):
+        remaining_budget = _MAX_TOTAL_RESULT_CHARS - total_chars
+        if remaining_budget <= 0:
+            break
+
+        content = r.content[: min(_MAX_CHARS_PER_RESULT, remaining_budget)]
+        total_chars += len(content)
+        formatted.append(f"[{i}] Source: {r.source}\nURL: {r.url}\nContent: {content}")
     return "\n\n".join(formatted)
 
 
