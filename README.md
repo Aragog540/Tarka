@@ -31,14 +31,16 @@ The **Critic → Searcher** loop is the core agentic behavior: the system iterat
 
 ## Stack
 
-| Component       | Tool                    |
-|-----------------|-------------------------|
-| Agent framework | LangGraph               |
-| LLM             | Claude Sonnet (Anthropic)|
-| Web search      | Tavily API              |
-| Vector DB       | ChromaDB (local/persistent)|
-| API layer       | FastAPI + SSE streaming  |
-| Containerization| Docker                  |
+| Component       | Tool                           |
+|-----------------|--------------------------------|
+| Agent framework | LangGraph                      |
+| LLM (default)   | Groq llama-3.1-8b-instant      |
+| LLM (optional)  | Anthropic Claude Sonnet        |
+| Web search      | Tavily API                     |
+| Vector DB       | ChromaDB (local/persistent)    |
+| API layer       | FastAPI + SSE streaming        |
+| Web UI          | HTML5 + localStorage (sidebar, dark theme) |
+| Containerization| Docker                         |
 
 ## Setup
 
@@ -58,13 +60,13 @@ cp .env.example .env
 ```
 
 Required:
-- `ANTHROPIC_API_KEY` — [Get one here](https://console.anthropic.com)
+- `GROQ_API_KEY` — [Get one here](https://console.groq.com) (free tier available; default LLM)
 - `TAVILY_API_KEY` — [Get one here](https://tavily.com) (free tier available)
 
-Optional for lower-cost web demos:
-- `LLM_PROVIDER=groq`
-- `GROQ_API_KEY`
-- `GROQ_MODEL` — defaults to `llama-3.1-8b-instant`
+Optional for Anthropic Claude instead of Groq:
+- `ANTHROPIC_API_KEY` — [Get one here](https://console.anthropic.com)
+- `LLM_PROVIDER=anthropic`
+- `ANTHROPIC_MODEL` — defaults to `claude-sonnet-4-20250514`
 
 ### 3. Run
 
@@ -109,7 +111,8 @@ curl -X POST http://localhost:8000/research \
 {
   "request_id": "a3f9b1c2",
   "query": "What are the best vector databases in 2024?",
-  "final_answer": "...",
+  "final_answer": "Vector databases are...",
+  "source_urls": ["https://example.com/db1", "https://example.com/db2"],
   "iterations": 2,
   "total_claims": 7,
   "elapsed_seconds": 18.4,
@@ -123,11 +126,15 @@ curl -X POST http://localhost:8000/research \
 
 **Structured Pydantic outputs** — every agent returns validated models (`Summary`, `Critique`, `SearchResult`), not raw strings.
 
-**Persistent memory** — ChromaDB stores past research. Similar queries return cached answers instantly via cosine similarity.
+**Persistent memory** — ChromaDB stores past research. Similar queries return cached answers instantly via cosine similarity. Metadata includes `source_urls` for the UI.
 
-**Observability** — every agent call is logged to `logs/agent_runs.jsonl` with timing, inputs, and status.
+**Plain-text answers** — the aggregator emits plain-text prose only (no Markdown), with inline citations as "Source: domain.com".
 
-**Deduplication** — the searcher deduplicates results by URL before passing to the summarizer.
+**Deduplication** — the searcher deduplicates results by URL before passing to the summarizer. The aggregator avoids duplicate source URLs in the side panel.
+
+**Prompt budgeting** — the summarizer caps search results to 5 items and 3000 chars total to stay under Groq's TPM limits (6000 TPM for llama-3.1-8b-instant).
+
+**Web UI features** — chat history sidebar (localStorage), dark theme toggle, and persistent theme preference.
 
 ## Project Structure
 
