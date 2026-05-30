@@ -1332,7 +1332,7 @@ APP_HTML = r"""
                             <div class="voice-panel-header">
                                 <div>
                                     <strong>Voice mode</strong>
-                                    <span>Free browser mic and speech playback. Works without extra services.</span>
+                                    <span>Browser-native voice controls.</span>
                                 </div>
                                 <div class="voice-status" id="voice_status">Voice idle.</div>
                             </div>
