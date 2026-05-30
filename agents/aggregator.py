@@ -72,6 +72,12 @@ def aggregator_node(state: ResearchState) -> dict:
         seen_urls.add(url)
         source_urls.append(url)
 
+    claims = summary.claims if summary else []
+    total_claims = len(claims)
+    claims_with_evidence = len([c for c in claims if c.evidence_snippet and c.source_url])
+    evidence_coverage = round((claims_with_evidence / total_claims), 3) if total_claims else 0.0
+    avg_confidence = round((sum(c.confidence_score for c in claims) / total_claims), 3) if total_claims else 0.0
+
     final_answer = generate_text(
         _SYSTEM_PROMPT,
         (
@@ -91,6 +97,11 @@ def aggregator_node(state: ResearchState) -> dict:
             final_answer=final_answer,
             claims=[c.dict() for c in summary.claims],
             source_urls=source_urls,
+            metadata={
+                "evidence_coverage": evidence_coverage,
+                "avg_confidence": avg_confidence,
+                "iterations": iterations,
+            },
         )
         logger.info("[aggregator] stored result in memory")
 
@@ -99,9 +110,13 @@ def aggregator_node(state: ResearchState) -> dict:
     return {
         "final_answer": final_answer,
         "source_urls": source_urls,
+        "evidence_coverage": evidence_coverage,
+        "avg_confidence": avg_confidence,
         "agent_logs": [{
             "agent": "aggregator",
             "answer_length": len(final_answer),
             "total_iterations": iterations,
+            "evidence_coverage": evidence_coverage,
+            "avg_confidence": avg_confidence,
         }],
     }

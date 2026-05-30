@@ -274,6 +274,32 @@ APP_HTML = r"""
 
         .toggle input { width: 18px; height: 18px; }
 
+        .memory-select {
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.84);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font: inherit;
+            min-width: 170px;
+        }
+
+        .message-metrics {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .metric-pill {
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.75);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
+
         .actions {
             display: flex;
             flex-wrap: wrap;
@@ -900,6 +926,7 @@ APP_HTML = r"""
         body[data-theme="dark"] .card,
         body[data-theme="dark"] .btn-secondary,
         body[data-theme="dark"] .chip,
+        body[data-theme="dark"] .memory-select,
         body[data-theme="dark"] textarea,
         body[data-theme="dark"] .history-item,
         body[data-theme="dark"] .history-empty,
@@ -1113,8 +1140,17 @@ APP_HTML = r"""
                         <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
 
                         <div class="composer-row">
-                            <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
+                                <div class="actions">
+                                    <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
+                                    <select id="memory_mode" class="memory-select" aria-label="Memory mode">
+                                        <option value="balanced" selected>Memory mode: Balanced</option>
+                                        <option value="prefer_memory">Memory mode: Prefer memory</option>
+                                        <option value="search_only">Memory mode: Search only</option>
+                                    </select>
+                                </div>
                             <div class="actions">
+                                    <button class="btn btn-secondary" id="export_chat" type="button">Export</button>
+                                    <button class="btn btn-secondary" id="share_chat" type="button">Share</button>
                                 <button class="btn btn-secondary" id="clear" type="button">Clear input</button>
                                 <button class="btn btn-primary" id="run" type="button">Send</button>
                             </div>
@@ -1141,9 +1177,12 @@ APP_HTML = r"""
     <script>
         const queryEl = document.getElementById('query');
         const useMemoryEl = document.getElementById('use_memory');
+        const memoryModeEl = document.getElementById('memory_mode');
         const statusEl = document.getElementById('status');
         const runBtn = document.getElementById('run');
         const clearBtn = document.getElementById('clear');
+        const exportBtn = document.getElementById('export_chat');
+        const shareBtn = document.getElementById('share_chat');
         const sessionListEl = document.getElementById('history_list');
         const newSessionBtn = document.getElementById('new_session');
         const sessionBadgeEl = document.getElementById('session_badge');
@@ -1271,6 +1310,8 @@ APP_HTML = r"""
             }
         };
 
+        const formatPct = (value) => `${Math.round((Number(value) || 0) * 100)}%`;
+
         const buildConversationContext = (session) => {
             if (!session || !session.messages.length) return '';
 
@@ -1317,9 +1358,45 @@ APP_HTML = r"""
             });
         };
 
-        const openSourcesModal = (sourceUrls) => {
-            const urls = uniqueSourceUrls(sourceUrls);
+        const openSourcesModal = (payload) => {
+            const urls = uniqueSourceUrls(payload?.source_urls || []);
+            const claims = Array.isArray(payload?.claims) ? payload.claims : [];
             sourcesModalListEl.innerHTML = '';
+
+            if (claims.length) {
+                claims.forEach((claim, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'source';
+
+                    const title = document.createElement('strong');
+                    title.textContent = `Claim ${idx + 1}: ${claim.claim || 'Untitled claim'}`;
+                    card.appendChild(title);
+
+                    const meta = document.createElement('div');
+                    meta.className = 'status';
+                    meta.textContent = `${claim.source || 'unknown source'} | confidence ${formatPct(claim.confidence_score || 0)}`;
+                    card.appendChild(meta);
+
+                    if (claim.evidence_snippet) {
+                        const snippet = document.createElement('div');
+                        snippet.className = 'message-content';
+                        snippet.textContent = `Evidence: ${claim.evidence_snippet}`;
+                        card.appendChild(snippet);
+                    }
+
+                    if (claim.source_url) {
+                        const link = document.createElement('a');
+                        link.className = 'sources-modal-item';
+                        link.href = claim.source_url;
+                        link.target = '_blank';
+                        link.rel = 'noreferrer';
+                        link.textContent = claim.source_url;
+                        card.appendChild(link);
+                    }
+
+                    sourcesModalListEl.appendChild(card);
+                });
+            }
 
             if (!urls.length) {
                 const empty = document.createElement('div');
@@ -1496,13 +1573,36 @@ APP_HTML = r"""
                     bubble.appendChild(flag);
                 }
 
-                if (message.role === 'assistant' && message.source_urls && message.source_urls.length) {
+                if (message.role === 'assistant' && ((message.source_urls && message.source_urls.length) || (message.claims && message.claims.length))) {
                     const sourcesButton = document.createElement('button');
                     sourcesButton.type = 'button';
                     sourcesButton.className = 'sources-button';
-                    sourcesButton.textContent = `Sources (${uniqueSourceUrls(message.source_urls).length})`;
-                    sourcesButton.addEventListener('click', () => openSourcesModal(message.source_urls));
+                    const claimCount = Array.isArray(message.claims) ? message.claims.length : 0;
+                    const sourceCount = uniqueSourceUrls(message.source_urls).length;
+                    sourcesButton.textContent = `Evidence (${claimCount} claims, ${sourceCount} URLs)`;
+                    sourcesButton.addEventListener('click', () => openSourcesModal({ source_urls: message.source_urls, claims: message.claims }));
                     bubble.appendChild(sourcesButton);
+                }
+
+                if (message.role === 'assistant' && (typeof message.evidence_coverage === 'number' || typeof message.avg_confidence === 'number')) {
+                    const metrics = document.createElement('div');
+                    metrics.className = 'message-metrics';
+
+                    if (typeof message.evidence_coverage === 'number') {
+                        const coverage = document.createElement('span');
+                        coverage.className = 'metric-pill';
+                        coverage.textContent = `Evidence coverage: ${formatPct(message.evidence_coverage)}`;
+                        metrics.appendChild(coverage);
+                    }
+
+                    if (typeof message.avg_confidence === 'number') {
+                        const confidence = document.createElement('span');
+                        confidence.className = 'metric-pill';
+                        confidence.textContent = `Avg confidence: ${formatPct(message.avg_confidence)}`;
+                        metrics.appendChild(confidence);
+                    }
+
+                    bubble.appendChild(metrics);
                 }
 
                 chatMessagesEl.appendChild(bubble);
@@ -1553,6 +1653,7 @@ APP_HTML = r"""
                 query,
                 context,
                 use_memory: useMemory ? '1' : '0',
+                memory_mode: memoryModeEl.value,
             });
 
             const source = new EventSource(`/research/stream?${params.toString()}`);
@@ -1602,9 +1703,12 @@ APP_HTML = r"""
                 }
 
                 if (payload.type === 'final') {
-                    if (payload.data?.source_urls) {
-                        updateActiveAssistant({ source_urls: payload.data.source_urls });
-                    }
+                    updateActiveAssistant({
+                        source_urls: payload.data?.source_urls || [],
+                        claims: payload.data?.claims || [],
+                        evidence_coverage: payload.data?.evidence_coverage,
+                        avg_confidence: payload.data?.avg_confidence,
+                    });
                     activeRequestId = payload.data?.request_id || activeRequestId;
                     resolve(payload.data || {});
                     finish(payload.data || {});
@@ -1650,6 +1754,9 @@ APP_HTML = r"""
                 role: 'assistant',
                 content: '',
                 source_urls: [],
+                claims: [],
+                evidence_coverage: null,
+                avg_confidence: null,
                 isStreaming: true,
                 created_at: nowIso(),
             };
@@ -1681,6 +1788,9 @@ APP_HTML = r"""
                 updateActiveAssistant({
                     content: finalPayload.final_answer || getActiveSession()?.messages.find((message) => message.id === activeAssistantMessageId)?.content || 'No answer generated.',
                     source_urls: finalPayload.source_urls || getActiveSession()?.messages.find((message) => message.id === activeAssistantMessageId)?.source_urls || [],
+                    claims: finalPayload.claims || [],
+                    evidence_coverage: typeof finalPayload.evidence_coverage === 'number' ? finalPayload.evidence_coverage : null,
+                    avg_confidence: typeof finalPayload.avg_confidence === 'number' ? finalPayload.avg_confidence : null,
                     isStreaming: false,
                 });
 
@@ -1734,6 +1844,61 @@ APP_HTML = r"""
             setStatus('Input cleared.');
         });
 
+        exportBtn.addEventListener('click', () => {
+            const session = getActiveSession();
+            if (!session || !session.messages.length) {
+                setStatus('No messages to export.');
+                return;
+            }
+
+            const payload = {
+                title: session.title,
+                exported_at: nowIso(),
+                messages: session.messages.map((m) => ({
+                    role: m.role,
+                    content: m.content,
+                    source_urls: m.source_urls || [],
+                    claims: m.claims || [],
+                    evidence_coverage: m.evidence_coverage,
+                    avg_confidence: m.avg_confidence,
+                    created_at: m.created_at,
+                })),
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `${(session.title || 'session').replace(/[^a-z0-9-_]+/gi, '_').toLowerCase()}.json`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+            setStatus('Session exported as JSON.');
+        });
+
+        shareBtn.addEventListener('click', async () => {
+            const session = getActiveSession();
+            if (!session || !session.messages.length) {
+                setStatus('No messages to share.');
+                return;
+            }
+
+            const lastAssistant = [...session.messages].reverse().find((m) => m.role === 'assistant');
+            const shareText = [
+                `Tarka session: ${session.title || 'Session'}`,
+                lastAssistant?.content || 'No assistant response yet.',
+                ...(lastAssistant?.source_urls || []).slice(0, 5),
+            ].join('\n\n');
+
+            try {
+                await navigator.clipboard.writeText(shareText);
+                setStatus('Share summary copied to clipboard.');
+            } catch {
+                setStatus('Clipboard access failed.');
+            }
+        });
+
         themeToggleEl.addEventListener('change', () => {
             const theme = themeToggleEl.checked ? 'dark' : 'light';
             localStorage.setItem(THEME_KEY, theme);
@@ -1758,6 +1923,7 @@ APP_HTML = r"""
 class ResearchRequest(BaseModel):
     query: str
     use_memory: bool = True
+    memory_mode: str = "balanced"
     conversation_context: str = ""
 
 
@@ -1766,8 +1932,11 @@ class ResearchResponse(BaseModel):
     query: str
     final_answer: str
     source_urls: list[str]
+    claims: list[dict]
     iterations: int
     total_claims: int
+    evidence_coverage: float
+    avg_confidence: float
     elapsed_seconds: float
     from_memory: bool
 
@@ -1816,17 +1985,24 @@ async def run_research(request: ResearchRequest):
     request_id = str(uuid.uuid4())[:8]
     logger.info(f"[api] request_id={request_id} query={request.query!r}")
 
-    if request.use_memory:
+    memory_mode = request.memory_mode if request.memory_mode in {"balanced", "prefer_memory", "search_only"} else "balanced"
+
+    if request.use_memory and memory_mode == "prefer_memory":
         cached = memory.has_recent_answer(request.query)
         if cached:
             logger.info(f"[api] cache hit for request_id={request_id}")
+            cached_claims = cached.get("claims", [])
+            cached_meta = cached.get("metadata", {}) if isinstance(cached.get("metadata"), dict) else {}
             return ResearchResponse(
                 request_id=request_id,
                 query=request.query,
                 final_answer=cached["answer"],
                 source_urls=cached.get("source_urls", []),
+                claims=cached_claims,
                 iterations=0,
-                total_claims=len(cached.get("claims", [])),
+                total_claims=len(cached_claims),
+                evidence_coverage=float(cached_meta.get("evidence_coverage", 0.0)),
+                avg_confidence=float(cached_meta.get("avg_confidence", 0.0)),
                 elapsed_seconds=0.0,
                 from_memory=True,
             )
@@ -1836,12 +2012,15 @@ async def run_research(request: ResearchRequest):
     initial_state = {
         "query": request.query,
         "conversation_context": request.conversation_context,
+        "memory_mode": memory_mode if request.use_memory else "search_only",
         "search_results": [],
         "summary": None,
         "critique": None,
         "iterations": 0,
         "final_answer": "",
         "source_urls": [],
+        "evidence_coverage": 0.0,
+        "avg_confidence": 0.0,
         "agent_logs": [],
         "error": None,
     }
@@ -1856,21 +2035,25 @@ async def run_research(request: ResearchRequest):
     summary = final_state.get("summary")
     total_claims = len(summary.claims) if summary else 0
     source_urls = final_state.get("source_urls", []) or _source_urls_from_results(final_state.get("search_results", []))
+    claims = [c.dict() for c in (summary.claims if summary else [])]
 
     return ResearchResponse(
         request_id=request_id,
         query=request.query,
         final_answer=final_state.get("final_answer", ""),
         source_urls=source_urls,
+        claims=claims,
         iterations=final_state.get("iterations", 0),
         total_claims=total_claims,
+        evidence_coverage=float(final_state.get("evidence_coverage", 0.0)),
+        avg_confidence=float(final_state.get("avg_confidence", 0.0)),
         elapsed_seconds=elapsed,
         from_memory=False,
     )
 
 
 @app.get("/research/stream")
-async def stream_research(query: str, context: str = "", use_memory: bool = True):
+async def stream_research(query: str, context: str = "", use_memory: bool = True, memory_mode: str = "balanced"):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
@@ -1878,27 +2061,33 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
         request_id = str(uuid.uuid4())[:8]
         latest_summary = None
         latest_iterations = 0
+        resolved_memory_mode = memory_mode if memory_mode in {"balanced", "prefer_memory", "search_only"} else "balanced"
 
-        if use_memory:
+        if use_memory and resolved_memory_mode == "prefer_memory":
             cached = memory.has_recent_answer(query)
             if cached:
                 cached_answer = cached["answer"]
                 cached_source_urls = cached.get("source_urls", [])
+                cached_claims = cached.get("claims", [])
+                cached_meta = cached.get("metadata", {}) if isinstance(cached.get("metadata"), dict) else {}
                 for chunk in _chunk_text(cached_answer):
                     yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
                     await asyncio.sleep(0)
-                yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': cached_answer, 'source_urls': cached_source_urls, 'iterations': 0, 'total_claims': len(cached.get('claims', [])), 'from_memory': True}})}\n\n"
+                yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': cached_answer, 'source_urls': cached_source_urls, 'claims': cached_claims, 'iterations': 0, 'total_claims': len(cached_claims), 'evidence_coverage': float(cached_meta.get('evidence_coverage', 0.0)), 'avg_confidence': float(cached_meta.get('avg_confidence', 0.0)), 'from_memory': True}})}\n\n"
                 return
 
         initial_state = {
             "query": query,
             "conversation_context": context,
+            "memory_mode": resolved_memory_mode if use_memory else "search_only",
             "search_results": [],
             "summary": None,
             "critique": None,
             "iterations": 0,
             "final_answer": "",
             "source_urls": [],
+            "evidence_coverage": 0.0,
+            "avg_confidence": 0.0,
             "agent_logs": [],
             "error": None,
         }
@@ -1932,7 +2121,8 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
                         yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
                         await asyncio.sleep(0)
                     total_claims = len(latest_summary.claims) if latest_summary else 0
-                    yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': final_answer, 'source_urls': source_urls, 'iterations': latest_iterations, 'total_claims': total_claims, 'from_memory': False}})}\n\n"
+                    claims = [c.dict() for c in (latest_summary.claims if latest_summary else [])]
+                    yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': final_answer, 'source_urls': source_urls, 'claims': claims, 'iterations': latest_iterations, 'total_claims': total_claims, 'evidence_coverage': float(node_output.get('evidence_coverage', 0.0)), 'avg_confidence': float(node_output.get('avg_confidence', 0.0)), 'from_memory': False}})}\n\n"
                     return
 
         yield "data: [DONE]\n\n"

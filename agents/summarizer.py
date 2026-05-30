@@ -12,7 +12,11 @@ Return ONLY valid JSON:
     {
       "claim": "specific factual statement",
       "source": "domain.com",
+            "source_url": "https://full-source-url",
       "confidence": "high" | "medium" | "low"
+            "confidence_score": 0.0-1.0,
+            "evidence_snippet": "short quote-like snippet from the provided content",
+            "evidence_chunk_id": "chunk id from input"
     }
   ],
   "raw_summary": "2-3 sentence synthesis of all results"
@@ -22,6 +26,7 @@ Rules:
 - Each claim must be independently verifiable
 - Confidence is high if directly stated, medium if inferred, low if speculative
 - Prefer specific facts over generalizations
+- Evidence snippet must be copied from the source chunk text in the prompt
 - Maximum 8 claims"""
 
 _MAX_RESULTS_FOR_PROMPT = 5
@@ -44,8 +49,17 @@ def _format_results(results: list[SearchResult]) -> str:
 
         content = r.content[: min(_MAX_CHARS_PER_RESULT, remaining_budget)]
         total_chars += len(content)
-        formatted.append(f"[{i}] Source: {r.source}\nURL: {r.url}\nContent: {content}")
+        chunk_id = r.chunk_id or f"chunk-{i}"
+        formatted.append(f"[{i}] Source: {r.source}\nURL: {r.url}\nChunk ID: {chunk_id}\nContent: {content}")
     return "\n\n".join(formatted)
+
+
+def _confidence_to_score(level: str) -> float:
+    return {
+        "high": 0.9,
+        "medium": 0.6,
+        "low": 0.35,
+    }.get((level or "").lower(), 0.5)
 
 
 @log_agent_call("summarizer")
@@ -65,7 +79,18 @@ def summarizer_node(state: ResearchState) -> dict:
 
     raw = json.loads(generate_text(_SYSTEM_PROMPT, f"Research query: {query}{conversation_context}\n\nSearch results:\n{formatted}", max_tokens=1500, json_mode=True))
 
-    claims = [Claim(**c) for c in raw["claims"]]
+    claims = []
+    for item in raw.get("claims", []):
+        confidence = item.get("confidence", "medium")
+        claims.append(Claim(
+            claim=item.get("claim", "").strip(),
+            source=item.get("source", "unknown").strip(),
+            source_url=item.get("source_url", "").strip(),
+            confidence=confidence,
+            confidence_score=float(item.get("confidence_score", _confidence_to_score(confidence))),
+            evidence_snippet=item.get("evidence_snippet", "").strip()[:280],
+            evidence_chunk_id=item.get("evidence_chunk_id", "").strip(),
+        ))
     summary = Summary(claims=claims, raw_summary=raw["raw_summary"])
 
     logger.info(f"[summarizer] extracted {len(claims)} claims")
