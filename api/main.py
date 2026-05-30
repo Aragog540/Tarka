@@ -867,6 +867,162 @@ APP_HTML = r"""
             box-shadow: 0 12px 24px rgba(23, 23, 23, 0.08);
         }
 
+        .voice-panel {
+            display: grid;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.78);
+        }
+
+        .voice-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .voice-panel-header strong {
+            display: block;
+            font-size: 0.98rem;
+            margin-bottom: 2px;
+        }
+
+        .voice-panel-header span,
+        .voice-note,
+        .voice-status {
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .voice-toolbar,
+        .voice-settings-grid,
+        .voice-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .voice-settings-grid {
+            align-items: stretch;
+        }
+
+        .voice-mic-btn {
+            min-width: 150px;
+        }
+
+        .voice-pill,
+        .voice-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.84);
+            color: var(--text);
+            font: inherit;
+            font-size: 0.9rem;
+        }
+
+        .voice-pill input,
+        .voice-toggle input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .voice-select {
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.86);
+            color: var(--text);
+            border-radius: 14px;
+            padding: 10px 12px;
+            font: inherit;
+            min-width: 180px;
+        }
+
+        .voice-status-box {
+            display: grid;
+            gap: 8px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(15, 118, 110, 0.08);
+            border: 1px solid rgba(15, 118, 110, 0.12);
+        }
+
+        .voice-draft {
+            display: grid;
+            gap: 8px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid var(--line);
+        }
+
+        .voice-draft textarea {
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        .voice-summary {
+            display: grid;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .followup-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .followup-chip,
+        .speak-claim-btn {
+            appearance: none;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.86);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.86rem;
+            transition: transform .12s ease, border-color .12s ease;
+        }
+
+        .followup-chip:hover,
+        .speak-claim-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.28);
+        }
+
+        .voice-active {
+            border-color: rgba(15, 118, 110, 0.34);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08);
+        }
+
+        body.voice-accessibility {
+            font-size: 1.04rem;
+        }
+
+        body.voice-accessibility .btn,
+        body.voice-accessibility .chip,
+        body.voice-accessibility .followup-chip,
+        body.voice-accessibility .speak-claim-btn,
+        body.voice-accessibility .voice-pill,
+        body.voice-accessibility .voice-toggle,
+        body.voice-accessibility .voice-select {
+            min-height: 46px;
+        }
+
+        body.voice-accessibility .message {
+            max-width: min(860px, 96%);
+        }
+
         .composer {
             border-top: 1px solid var(--line);
             padding-top: 18px;
@@ -957,6 +1113,14 @@ APP_HTML = r"""
         body[data-theme="dark"] .history-empty,
         body[data-theme="dark"] .empty,
         body[data-theme="dark"] .source,
+        body[data-theme="dark"] .voice-panel,
+        body[data-theme="dark"] .voice-status-box,
+        body[data-theme="dark"] .voice-draft,
+        body[data-theme="dark"] .voice-pill,
+        body[data-theme="dark"] .voice-toggle,
+        body[data-theme="dark"] .voice-select,
+        body[data-theme="dark"] .followup-chip,
+        body[data-theme="dark"] .speak-claim-btn,
         body[data-theme="dark"] .meta div,
         body[data-theme="dark"] .stat {
             background: rgba(15, 23, 42, 0.96);
@@ -1164,6 +1328,57 @@ APP_HTML = r"""
                             <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
                         </div>
 
+                        <div class="voice-panel" id="voice_panel">
+                            <div class="voice-panel-header">
+                                <div>
+                                    <strong>Voice mode</strong>
+                                    <span>Free browser mic and speech playback. Works without extra services.</span>
+                                </div>
+                                <div class="voice-status" id="voice_status">Voice idle.</div>
+                            </div>
+
+                            <div class="voice-toolbar">
+                                <button class="btn btn-primary voice-mic-btn" id="voice_toggle" type="button">Start voice</button>
+                                <button class="btn btn-secondary" id="voice_stop" type="button">Stop voice</button>
+                                <button class="btn btn-secondary" id="voice_play_answer" type="button">Read latest answer</button>
+                            </div>
+
+                            <div class="voice-settings-grid">
+                                <label class="voice-toggle"><input id="voice_hands_free" type="checkbox" /> Hands-free</label>
+                                <label class="voice-toggle"><input id="voice_auto_send" type="checkbox" /> Auto send transcript</label>
+                                <label class="voice-toggle"><input id="voice_speak_answers" type="checkbox" checked /> Speak answers</label>
+                                <label class="voice-toggle"><input id="voice_streaming" type="checkbox" checked /> Stream speech</label>
+                                <label class="voice-toggle"><input id="voice_barge_in" type="checkbox" checked /> Barge-in</label>
+                                <label class="voice-toggle"><input id="voice_source_aware" type="checkbox" checked /> Source-aware speech</label>
+                                <label class="voice-toggle"><input id="voice_confidence_cues" type="checkbox" checked /> Confidence cues</label>
+                                <label class="voice-toggle"><input id="voice_clarify_first" type="checkbox" checked /> Clarify first</label>
+                                <label class="voice-toggle"><input id="voice_memory_commands" type="checkbox" checked /> Voice memory commands</label>
+                                <label class="voice-toggle"><input id="voice_accessibility" type="checkbox" /> Accessibility mode</label>
+                                <select id="voice_depth" class="voice-select" aria-label="Voice answer depth">
+                                    <option value="brief">Brief answer</option>
+                                    <option value="balanced" selected>Balanced answer</option>
+                                    <option value="deep">Deep dive</option>
+                                </select>
+                                <select id="voice_lang" class="voice-select" aria-label="Voice language">
+                                    <option value="auto" selected>Auto language</option>
+                                    <option value="en-US">English (US)</option>
+                                    <option value="en-GB">English (UK)</option>
+                                    <option value="hi-IN">Hindi (India)</option>
+                                </select>
+                                <select id="voice_voice" class="voice-select" aria-label="Speech voice"></select>
+                            </div>
+
+                            <div class="voice-status-box">
+                                <div class="voice-note" id="voice_hint">Tip: click Start voice, speak your query, edit the transcript, then press Send.</div>
+                                <div class="voice-note" id="voice_confidence">Transcript confidence: not available until you speak.</div>
+                            </div>
+
+                            <div class="voice-draft">
+                                <div class="voice-note">Voice transcript draft</div>
+                                <textarea id="voice_draft" placeholder="Your transcript will appear here for review before sending..."></textarea>
+                            </div>
+                        </div>
+
                         <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
 
                         <div class="composer-row">
@@ -1242,11 +1457,34 @@ APP_HTML = r"""
         const shareMailEl = document.getElementById('share_mail');
         const shareCopyEl = document.getElementById('share_copy');
         const themeToggleEl = document.getElementById('theme_toggle');
+        const voicePanelEl = document.getElementById('voice_panel');
+        const voiceToggleEl = document.getElementById('voice_toggle');
+        const voiceStopEl = document.getElementById('voice_stop');
+        const voicePlayAnswerEl = document.getElementById('voice_play_answer');
+        const voiceHandsFreeEl = document.getElementById('voice_hands_free');
+        const voiceAutoSendEl = document.getElementById('voice_auto_send');
+        const voiceSpeakAnswersEl = document.getElementById('voice_speak_answers');
+        const voiceStreamingEl = document.getElementById('voice_streaming');
+        const voiceBargeInEl = document.getElementById('voice_barge_in');
+        const voiceSourceAwareEl = document.getElementById('voice_source_aware');
+        const voiceConfidenceCuesEl = document.getElementById('voice_confidence_cues');
+        const voiceClarifyFirstEl = document.getElementById('voice_clarify_first');
+        const voiceMemoryCommandsEl = document.getElementById('voice_memory_commands');
+        const voiceAccessibilityEl = document.getElementById('voice_accessibility');
+        const voiceDepthEl = document.getElementById('voice_depth');
+        const voiceLangEl = document.getElementById('voice_lang');
+        const voiceVoiceEl = document.getElementById('voice_voice');
+        const voiceDraftEl = document.getElementById('voice_draft');
+        const voiceStatusEl = document.getElementById('voice_status');
+        const voiceHintEl = document.getElementById('voice_hint');
+        const voiceConfidenceEl = document.getElementById('voice_confidence');
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
         const THEME_KEY = 'research-theme';
+        const VOICE_KEY = 'tarka-voice-settings';
         const MAX_SESSIONS = 20;
         const MAX_CONTEXT_MESSAGES = 8;
+        const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
         // List of explicit words to flag in assistant messages. Case-insensitive, matched as whole words.
         const EXPLICIT_WORDS = [
@@ -1265,6 +1503,33 @@ APP_HTML = r"""
         let activeAssistantMessageId = null;
         let activeRequestId = null;
         let activeShareText = '';
+        let speechRecognition = null;
+        let speechRecognitionActive = false;
+        let speechRecognitionTranscript = '';
+        let speechRecognitionInterim = '';
+        let speechSynthesisVoice = null;
+        let speechQueue = [];
+        let speechQueueActive = false;
+        let speechStreamBuffer = '';
+        let lastVoiceTranscriptConfidence = null;
+
+        const defaultVoiceSettings = {
+            handsFree: false,
+            autoSend: false,
+            speakAnswers: true,
+            streamingVoice: true,
+            bargeIn: true,
+            sourceAware: true,
+            confidenceCues: true,
+            clarifyFirst: true,
+            memoryCommands: true,
+            accessibility: false,
+            depth: 'balanced',
+            lang: 'auto',
+            voiceURI: '',
+        };
+
+        let voiceSettings = { ...defaultVoiceSettings };
 
         const nowIso = () => new Date().toISOString();
         const setStatus = (text) => { statusEl.textContent = text; };
@@ -1364,6 +1629,437 @@ APP_HTML = r"""
 
         const formatPct = (value) => `${Math.round((Number(value) || 0) * 100)}%`;
 
+        const loadVoiceSettings = () => {
+            try {
+                const raw = localStorage.getItem(VOICE_KEY);
+                if (!raw) return { ...defaultVoiceSettings };
+                const parsed = JSON.parse(raw);
+                return { ...defaultVoiceSettings, ...(parsed || {}) };
+            } catch {
+                return { ...defaultVoiceSettings };
+            }
+        };
+
+        const saveVoiceSettings = () => {
+            localStorage.setItem(VOICE_KEY, JSON.stringify(voiceSettings));
+        };
+
+        const setVoiceStatus = (text) => {
+            voiceStatusEl.textContent = text;
+        };
+
+        const applyVoiceAccessibility = () => {
+            document.body.classList.toggle('voice-accessibility', !!voiceSettings.accessibility);
+        };
+
+        const syncVoiceUI = () => {
+            voiceHandsFreeEl.checked = !!voiceSettings.handsFree;
+            voiceAutoSendEl.checked = !!voiceSettings.autoSend;
+            voiceSpeakAnswersEl.checked = !!voiceSettings.speakAnswers;
+            voiceStreamingEl.checked = !!voiceSettings.streamingVoice;
+            voiceBargeInEl.checked = !!voiceSettings.bargeIn;
+            voiceSourceAwareEl.checked = !!voiceSettings.sourceAware;
+            voiceConfidenceCuesEl.checked = !!voiceSettings.confidenceCues;
+            voiceClarifyFirstEl.checked = !!voiceSettings.clarifyFirst;
+            voiceMemoryCommandsEl.checked = !!voiceSettings.memoryCommands;
+            voiceAccessibilityEl.checked = !!voiceSettings.accessibility;
+            voiceDepthEl.value = voiceSettings.depth || 'balanced';
+            voiceLangEl.value = voiceSettings.lang || 'auto';
+            applyVoiceAccessibility();
+        };
+
+        const refreshVoiceVoiceList = () => {
+            if (!window.speechSynthesis) {
+                voiceVoiceEl.innerHTML = '<option value="">Speech synthesis unavailable</option>';
+                voiceVoiceEl.disabled = true;
+                return;
+            }
+
+            const voices = window.speechSynthesis.getVoices();
+            const options = ['<option value="">Default voice</option>'];
+            voices.forEach((voice) => {
+                const label = `${voice.name} (${voice.lang})`;
+                options.push(`<option value="${String(voice.voiceURI).replace(/"/g, '&quot;')}">${label}</option>`);
+            });
+            voiceVoiceEl.innerHTML = options.join('');
+            voiceVoiceEl.disabled = voices.length === 0;
+            if (voiceSettings.voiceURI) {
+                voiceVoiceEl.value = voiceSettings.voiceURI;
+            }
+        };
+
+        const getRecognitionLanguage = () => {
+            if (voiceSettings.lang && voiceSettings.lang !== 'auto') return voiceSettings.lang;
+            return navigator.language || 'en-US';
+        };
+
+        const chooseSpeechVoice = () => {
+            if (!window.speechSynthesis) return null;
+            const voices = window.speechSynthesis.getVoices();
+            if (!voices.length) return null;
+
+            if (voiceSettings.voiceURI) {
+                const selected = voices.find((voice) => voice.voiceURI === voiceSettings.voiceURI);
+                if (selected) return selected;
+            }
+
+            const targetLang = getRecognitionLanguage().toLowerCase();
+            return voices.find((voice) => voice.lang && voice.lang.toLowerCase() === targetLang)
+                || voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith(targetLang.split('-')[0]))
+                || voices[0];
+        };
+
+        const cancelVoicePlayback = () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            speechQueue = [];
+            speechQueueActive = false;
+            speechStreamBuffer = '';
+        };
+
+        const enqueueSpeech = (text, { immediate = false } = {}) => {
+            const cleaned = (text || '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return;
+            speechQueue.push(cleaned);
+            if (immediate) {
+                cancelVoicePlayback();
+                speechQueue.push(cleaned);
+            }
+            processSpeechQueue();
+        };
+
+        const processSpeechQueue = () => {
+            if (!window.speechSynthesis || !voiceSettings.speakAnswers || speechQueueActive) return;
+            const next = speechQueue.shift();
+            if (!next) return;
+
+            const utterance = new SpeechSynthesisUtterance(next);
+            utterance.lang = getRecognitionLanguage();
+            utterance.rate = voiceSettings.depth === 'brief' ? 1.06 : voiceSettings.depth === 'deep' ? 0.96 : 1.0;
+            utterance.pitch = 1;
+            utterance.voice = chooseSpeechVoice();
+            speechQueueActive = true;
+
+            utterance.onend = () => {
+                speechQueueActive = false;
+                processSpeechQueue();
+                if (!speechQueue.length && voiceSettings.handsFree && !speechRecognitionActive) {
+                    startVoiceRecognition({ autoSend: false, restart: true });
+                }
+            };
+
+            utterance.onerror = () => {
+                speechQueueActive = false;
+                processSpeechQueue();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const flushSpeechStream = (force = false) => {
+            if (!voiceSettings.streamingVoice || !voiceSettings.speakAnswers || !speechStreamBuffer.trim()) return;
+
+            const buffer = speechStreamBuffer;
+            const sentenceMatch = buffer.match(/^(.+?[.!?](?:\s|$))/s);
+            if (sentenceMatch) {
+                enqueueSpeech(sentenceMatch[1]);
+                speechStreamBuffer = buffer.slice(sentenceMatch[1].length);
+                return;
+            }
+
+            if (force || buffer.length > 170) {
+                const chunk = force ? buffer : buffer.slice(0, 170);
+                enqueueSpeech(chunk);
+                speechStreamBuffer = force ? '' : buffer.slice(170);
+            }
+        };
+
+        const speakText = (text, { interrupt = false, force = false } = {}) => {
+            if ((!voiceSettings.speakAnswers && !force) || !window.speechSynthesis) return;
+            if (interrupt) {
+                cancelVoicePlayback();
+            }
+            enqueueSpeech(text, { immediate: interrupt });
+        };
+
+        const buildVoicePromptPrefix = () => {
+            const parts = [];
+            if (voiceSettings.depth === 'brief') parts.push('Answer briefly in 3 to 5 sentences.');
+            if (voiceSettings.depth === 'deep') parts.push('Answer in detail with tradeoffs, caveats, and next steps.');
+            if (voiceSettings.sourceAware) parts.push('Be source-aware and mention evidence quality clearly.');
+            if (voiceSettings.confidenceCues) parts.push('State confidence when evidence is strong, medium, or weak.');
+            if (!parts.length) return '';
+            return `Voice response instructions: ${parts.join(' ')}`;
+        };
+
+        const looksLikeNeedsClarification = (text) => {
+            const cleaned = (text || '').trim();
+            const words = cleaned.split(/\s+/).filter(Boolean);
+            if (words.length < 6) return true;
+            return /\b(something|stuff|thing|whatever|it|this|that)\b/i.test(cleaned) && words.length < 10;
+        };
+
+        const applyVoiceCommands = (rawText) => {
+            let text = (rawText || '').trim();
+            if (!voiceSettings.memoryCommands || !text) {
+                return { text, clarified: false };
+            }
+
+            const replacements = [
+                { pattern: /\b(use fresh search|search only|ignore memory)\b/gi, action: () => { memoryModeEl.value = 'search_only'; } },
+                { pattern: /\b(prefer memory|use memory)\b/gi, action: () => { memoryModeEl.value = 'prefer_memory'; } },
+                { pattern: /\b(balanced memory|balanced mode)\b/gi, action: () => { memoryModeEl.value = 'balanced'; } },
+                { pattern: /\b(brief answer|keep it brief|short answer)\b/gi, action: () => { voiceDepthEl.value = 'brief'; voiceSettings.depth = 'brief'; } },
+                { pattern: /\b(deep dive|detailed answer|full answer)\b/gi, action: () => { voiceDepthEl.value = 'deep'; voiceSettings.depth = 'deep'; } },
+                { pattern: /\b(auto send|send automatically)\b/gi, action: () => { voiceAutoSendEl.checked = true; } },
+                { pattern: /\b(no auto send|don't auto send|do not auto send)\b/gi, action: () => { voiceAutoSendEl.checked = false; } },
+            ];
+
+            replacements.forEach(({ pattern, action }) => {
+                if (pattern.test(text)) {
+                    action();
+                    text = text.replace(pattern, ' ');
+                }
+            });
+
+            text = text.replace(/\s+/g, ' ').trim();
+            return { text, clarified: false };
+        };
+
+        const updateVoiceSettingsFromUI = () => {
+            voiceSettings = {
+                ...voiceSettings,
+                handsFree: voiceHandsFreeEl.checked,
+                autoSend: voiceAutoSendEl.checked,
+                speakAnswers: voiceSpeakAnswersEl.checked,
+                streamingVoice: voiceStreamingEl.checked,
+                bargeIn: voiceBargeInEl.checked,
+                sourceAware: voiceSourceAwareEl.checked,
+                confidenceCues: voiceConfidenceCuesEl.checked,
+                clarifyFirst: voiceClarifyFirstEl.checked,
+                memoryCommands: voiceMemoryCommandsEl.checked,
+                accessibility: voiceAccessibilityEl.checked,
+                depth: voiceDepthEl.value,
+                lang: voiceLangEl.value,
+                voiceURI: voiceVoiceEl.value,
+            };
+            saveVoiceSettings();
+            syncVoiceUI();
+        };
+
+        const initializeVoiceSettings = () => {
+            voiceSettings = loadVoiceSettings();
+            syncVoiceUI();
+            refreshVoiceVoiceList();
+            setVoiceStatus(SpeechRecognitionCtor ? 'Voice ready.' : 'Voice is unavailable in this browser.');
+            voiceHintEl.textContent = SpeechRecognitionCtor
+                ? 'Tip: click Start voice, speak your query, edit the transcript, then press Send.'
+                : 'Speech recognition is not available here. You can still use TTS if supported.';
+            voiceToggleEl.disabled = !SpeechRecognitionCtor;
+            voiceStopEl.disabled = !SpeechRecognitionCtor;
+            voicePlayAnswerEl.disabled = !window.speechSynthesis;
+        };
+
+        const speakEvidenceForClaim = (claim) => {
+            if (!claim) return;
+            const lines = [
+                `Claim: ${claim.claim || 'No claim text.'}`,
+                claim.source ? `Source: ${claim.source}.` : '',
+                claim.evidence_snippet ? `Evidence: ${claim.evidence_snippet}` : '',
+            ].filter(Boolean);
+            speakText(lines.join(' '), { interrupt: true, force: true });
+        };
+
+        const buildFollowUpSuggestions = (message) => {
+            const suggestions = [];
+            if (!message) return suggestions;
+            if (message.claims && message.claims.length) {
+                const firstClaim = message.claims[0];
+                suggestions.push(`Explain the strongest claim: ${firstClaim.claim || 'claim 1'}`);
+                suggestions.push(`Show evidence for: ${firstClaim.source || 'claim 1'}`);
+            }
+            if (message.source_urls && message.source_urls.length) {
+                suggestions.push('Compare this answer with an alternative source');
+            }
+            suggestions.push('Give me a shorter summary');
+            return [...new Set(suggestions)].slice(0, 3);
+        };
+
+        const getLatestAssistantMessage = () => {
+            const session = getActiveSession();
+            if (!session) return null;
+            return [...session.messages].reverse().find((message) => message.role === 'assistant');
+        };
+
+        const buildAnswerSpeech = (payload, { includeAnswer = true } = {}) => {
+            const answer = (payload?.final_answer || '').trim();
+            const parts = includeAnswer && answer ? [answer] : [];
+
+            if (voiceSettings.sourceAware) {
+                const coverage = typeof payload?.evidence_coverage === 'number' ? Math.round(payload.evidence_coverage * 100) : null;
+                const confidence = typeof payload?.avg_confidence === 'number' ? Math.round(payload.avg_confidence * 100) : null;
+                const evidenceParts = [];
+                if (coverage !== null) evidenceParts.push(`Evidence coverage ${coverage} percent.`);
+                if (confidence !== null && voiceSettings.confidenceCues) evidenceParts.push(`Average confidence ${confidence} percent.`);
+                if (evidenceParts.length) {
+                    parts.push(evidenceParts.join(' '));
+                }
+            }
+
+            const followUps = buildFollowUpSuggestions({
+                claims: payload?.claims || [],
+                source_urls: payload?.source_urls || [],
+            });
+            if (followUps.length) {
+                parts.push(`Suggested follow-ups: ${followUps.join('; ')}.`);
+            }
+
+            return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        };
+
+        const stopVoiceRecognition = () => {
+            if (speechRecognition) {
+                try {
+                    speechRecognition.onstart = null;
+                    speechRecognition.onresult = null;
+                    speechRecognition.onerror = null;
+                    speechRecognition.onend = null;
+                    speechRecognition.abort();
+                } catch {
+                    // ignore
+                }
+                speechRecognition = null;
+            }
+            speechRecognitionActive = false;
+            voicePanelEl.classList.remove('voice-active');
+            voiceToggleEl.textContent = 'Start voice';
+            if (!voiceSettings.speakAnswers) {
+                setVoiceStatus('Voice idle.');
+            }
+        };
+
+        function startVoiceRecognition({ autoSend = false } = {}) {
+            if (!SpeechRecognitionCtor) {
+                setVoiceStatus('Speech recognition is unavailable in this browser.');
+                return;
+            }
+
+            if (speechRecognitionActive) {
+                stopVoiceRecognition();
+                return;
+            }
+
+            if (voiceSettings.bargeIn) {
+                cancelVoicePlayback();
+            }
+
+            speechRecognitionTranscript = '';
+            speechRecognitionInterim = '';
+            lastVoiceTranscriptConfidence = null;
+            voiceDraftEl.value = '';
+            voiceConfidenceEl.textContent = 'Transcript confidence: waiting for speech.';
+
+            speechRecognition = new SpeechRecognitionCtor();
+            speechRecognition.continuous = false;
+            speechRecognition.interimResults = true;
+            speechRecognition.maxAlternatives = 3;
+            speechRecognition.lang = getRecognitionLanguage();
+
+            speechRecognition.onstart = () => {
+                speechRecognitionActive = true;
+                voicePanelEl.classList.add('voice-active');
+                voiceToggleEl.textContent = 'Stop voice';
+                setVoiceStatus('Listening for your query...');
+            };
+
+            speechRecognition.onresult = (event) => {
+                let interim = '';
+                let finalText = '';
+                let confidence = lastVoiceTranscriptConfidence || 0;
+
+                for (let index = event.resultIndex; index < event.results.length; index += 1) {
+                    const result = event.results[index];
+                    const transcript = result[0]?.transcript || '';
+                    const resultConfidence = typeof result[0]?.confidence === 'number' ? result[0].confidence : 0;
+                    confidence = Math.max(confidence, resultConfidence);
+
+                    if (result.isFinal) {
+                        finalText += `${transcript} `;
+                    } else {
+                        interim += `${transcript} `;
+                    }
+                }
+
+                if (finalText.trim()) {
+                    speechRecognitionTranscript = `${speechRecognitionTranscript} ${finalText}`.trim();
+                }
+
+                speechRecognitionInterim = interim.trim();
+                const displayText = `${speechRecognitionTranscript} ${speechRecognitionInterim}`.replace(/\s+/g, ' ').trim();
+                voiceDraftEl.value = displayText;
+                queryEl.value = displayText;
+                lastVoiceTranscriptConfidence = confidence;
+                voiceConfidenceEl.textContent = confidence
+                    ? `Transcript confidence: ${Math.round(confidence * 100)}%`
+                    : 'Transcript confidence: unavailable.';
+            };
+
+            speechRecognition.onerror = (event) => {
+                speechRecognitionActive = false;
+                voicePanelEl.classList.remove('voice-active');
+                voiceToggleEl.textContent = 'Start voice';
+                setVoiceStatus(`Voice error: ${event.error || 'unknown error'}.`);
+                speechRecognition = null;
+            };
+
+            speechRecognition.onend = () => {
+                const transcript = `${speechRecognitionTranscript} ${speechRecognitionInterim}`.replace(/\s+/g, ' ').trim();
+                speechRecognitionActive = false;
+                voicePanelEl.classList.remove('voice-active');
+                voiceToggleEl.textContent = 'Start voice';
+                speechRecognition = null;
+
+                if (!transcript) {
+                    setVoiceStatus('Voice idle.');
+                    return;
+                }
+
+                const commandResult = applyVoiceCommands(transcript);
+                updateVoiceSettingsFromUI();
+                const cleanedTranscript = commandResult.text || transcript;
+                voiceDraftEl.value = cleanedTranscript;
+                queryEl.value = cleanedTranscript;
+
+                if (voiceSettings.clarifyFirst && looksLikeNeedsClarification(cleanedTranscript)) {
+                    const clarification = 'I need a bit more detail before I research this. Please add the topic, target audience, or specific comparison you want.';
+                    setStatus('Voice captured, but it needs a little more detail.');
+                    setVoiceStatus('Need a bit more detail before research.');
+                    speakText(clarification, { interrupt: true });
+                    return;
+                }
+
+                setVoiceStatus(autoSend || voiceSettings.autoSend ? 'Transcript captured. Sending research request...' : 'Transcript captured. Edit it, then press Send.');
+                setStatus('Voice transcript ready.');
+
+                if (autoSend || voiceSettings.autoSend) {
+                    sendMessage();
+                    return;
+                }
+
+                if (voiceSettings.handsFree && !speechQueue.length) {
+                    setVoiceStatus('Hands-free mode ready for the next command.');
+                }
+            };
+
+            try {
+                speechRecognition.start();
+            } catch (error) {
+                setVoiceStatus(`Could not start speech recognition: ${error.message || 'unknown error'}.`);
+                stopVoiceRecognition();
+            }
+        }
+
         const buildConversationContext = (session) => {
             if (!session || !session.messages.length) return '';
 
@@ -1435,6 +2131,13 @@ APP_HTML = r"""
                         snippet.textContent = `Evidence: ${claim.evidence_snippet}`;
                         card.appendChild(snippet);
                     }
+
+                    const speakClaimBtn = document.createElement('button');
+                    speakClaimBtn.type = 'button';
+                    speakClaimBtn.className = 'speak-claim-btn';
+                    speakClaimBtn.textContent = 'Speak claim';
+                    speakClaimBtn.addEventListener('click', () => speakEvidenceForClaim(claim));
+                    card.appendChild(speakClaimBtn);
 
                     if (claim.source_url) {
                         const link = document.createElement('a');
@@ -1696,6 +2399,36 @@ APP_HTML = r"""
                     bubble.appendChild(metrics);
                 }
 
+                if (message.role === 'assistant') {
+                    const suggestions = buildFollowUpSuggestions(message);
+                    if (suggestions.length) {
+                        const followUps = document.createElement('div');
+                        followUps.className = 'voice-summary';
+
+                        const label = document.createElement('div');
+                        label.className = 'voice-note';
+                        label.textContent = 'Suggested follow-ups';
+                        followUps.appendChild(label);
+
+                        const chips = document.createElement('div');
+                        chips.className = 'followup-chips';
+                        suggestions.forEach((suggestion) => {
+                            const chip = document.createElement('button');
+                            chip.type = 'button';
+                            chip.className = 'followup-chip';
+                            chip.textContent = suggestion;
+                            chip.addEventListener('click', () => {
+                                queryEl.value = suggestion;
+                                queryEl.focus();
+                                setStatus('Follow-up loaded into the composer.');
+                            });
+                            chips.appendChild(chip);
+                        });
+                        followUps.appendChild(chips);
+                        bubble.appendChild(followUps);
+                    }
+                }
+
                 chatMessagesEl.appendChild(bubble);
             });
 
@@ -1770,6 +2503,10 @@ APP_HTML = r"""
                 }
 
                 if (payload.type === 'delta') {
+                    if (voiceSettings.speakAnswers && voiceSettings.streamingVoice) {
+                        speechStreamBuffer += payload.data?.delta || '';
+                        flushSpeechStream(false);
+                    }
                     if (activeAssistantMessageId) {
                         const session = getActiveSession();
                         const assistant = session?.messages.find((message) => message.id === activeAssistantMessageId);
@@ -1794,6 +2531,17 @@ APP_HTML = r"""
                 }
 
                 if (payload.type === 'final') {
+                    if (voiceSettings.speakAnswers) {
+                        if (!voiceSettings.streamingVoice) {
+                            speakText(buildAnswerSpeech(payload.data || {}), { interrupt: true });
+                        } else {
+                            flushSpeechStream(true);
+                                const closingSpeech = buildAnswerSpeech(payload.data || {}, { includeAnswer: false });
+                                if (closingSpeech) {
+                                    enqueueSpeech(closingSpeech);
+                                }
+                        }
+                    }
                     updateActiveAssistant({
                         source_urls: payload.data?.source_urls || [],
                         claims: payload.data?.claims || [],
@@ -1819,7 +2567,8 @@ APP_HTML = r"""
         });
 
         const sendMessage = async () => {
-            const query = queryEl.value.trim();
+            const voiceDraft = voiceDraftEl.value.trim();
+            const query = (voiceDraft || queryEl.value || '').trim();
             if (!query) {
                 setStatus('Enter a query first.');
                 return;
@@ -1834,6 +2583,8 @@ APP_HTML = r"""
             stopActiveStream();
 
             const conversationContext = buildConversationContext(session);
+            const voiceInstruction = buildVoicePromptPrefix();
+            const researchQuery = voiceInstruction ? `${query}\n\n${voiceInstruction}` : query;
             const userMessage = {
                 id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
                 role: 'user',
@@ -1865,13 +2616,19 @@ APP_HTML = r"""
             renderMessages();
 
             queryEl.value = '';
+            voiceDraftEl.value = '';
             runBtn.disabled = true;
             runBtn.textContent = 'Streaming...';
             setStatus('Streaming the answer into the session.');
 
+            speechStreamBuffer = '';
+            if (voiceSettings.bargeIn) {
+                cancelVoicePlayback();
+            }
+
             try {
                 const finalPayload = await streamAnswer({
-                    query,
+                    query: researchQuery,
                     context: conversationContext,
                     useMemory: useMemoryEl.checked,
                 });
@@ -1905,8 +2662,15 @@ APP_HTML = r"""
 
         loadSessions();
         applyTheme(loadTheme());
+        initializeVoiceSettings();
         renderSessions();
         renderMessages();
+
+        if (window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                refreshVoiceVoiceList();
+            };
+        }
 
         document.querySelectorAll('[data-query]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -1998,6 +2762,64 @@ APP_HTML = r"""
             if (openExternal(shareUrl)) {
                 setStatus(copied ? 'Copied and opened WhatsApp.' : 'Opened WhatsApp. Paste if needed.');
                 closeShareModal();
+            }
+        });
+
+        const syncVoiceDraftToQuery = () => {
+            queryEl.value = voiceDraftEl.value;
+        };
+
+        voiceToggleEl.addEventListener('click', () => {
+            if (speechRecognitionActive) {
+                stopVoiceRecognition();
+                setVoiceStatus('Voice stopped.');
+                return;
+            }
+
+            updateVoiceSettingsFromUI();
+            startVoiceRecognition({ autoSend: voiceSettings.autoSend });
+        });
+
+        voiceStopEl.addEventListener('click', () => {
+            stopVoiceRecognition();
+            cancelVoicePlayback();
+            setVoiceStatus('Voice stopped.');
+        });
+
+        voicePlayAnswerEl.addEventListener('click', () => {
+            const latestAssistant = getLatestAssistantMessage();
+            if (!latestAssistant || !latestAssistant.content) {
+                setStatus('No answer available to read yet.');
+                return;
+            }
+
+            speakText(buildAnswerSpeech({
+                final_answer: latestAssistant.content,
+                source_urls: latestAssistant.source_urls || [],
+                claims: latestAssistant.claims || [],
+                evidence_coverage: latestAssistant.evidence_coverage,
+                avg_confidence: latestAssistant.avg_confidence,
+            }), { interrupt: true, force: true });
+            setVoiceStatus('Reading the latest answer.');
+        });
+
+        [voiceHandsFreeEl, voiceAutoSendEl, voiceSpeakAnswersEl, voiceStreamingEl, voiceBargeInEl, voiceSourceAwareEl, voiceConfidenceCuesEl, voiceClarifyFirstEl, voiceMemoryCommandsEl, voiceAccessibilityEl, voiceDepthEl, voiceLangEl, voiceVoiceEl].forEach((element) => {
+            element.addEventListener('change', () => {
+                updateVoiceSettingsFromUI();
+                if (element === voiceVoiceEl && voiceSettings.voiceURI) {
+                    setVoiceStatus(`Selected voice updated to ${voiceVoiceEl.options[voiceVoiceEl.selectedIndex]?.text || 'custom voice'}.`);
+                }
+            });
+        });
+
+        voiceDraftEl.addEventListener('input', syncVoiceDraftToQuery);
+
+        queryEl.addEventListener('input', () => {
+            if (!voiceDraftEl.value.trim()) {
+                return;
+            }
+            if (document.activeElement === queryEl) {
+                voiceDraftEl.value = queryEl.value;
             }
         });
 
