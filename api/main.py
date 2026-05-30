@@ -842,6 +842,31 @@ APP_HTML = r"""
             font-size: 0.88rem;
         }
 
+        .share-options {
+            display: grid;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .share-option-btn {
+            appearance: none;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.84);
+            color: var(--text);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+        }
+
+        .share-option-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.28);
+            box-shadow: 0 12px 24px rgba(23, 23, 23, 0.08);
+        }
+
         .composer {
             border-top: 1px solid var(--line);
             padding-top: 18px;
@@ -1000,6 +1025,7 @@ APP_HTML = r"""
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
         body[data-theme="dark"] .sources-modal-item,
+        body[data-theme="dark"] .share-option-btn,
         body[data-theme="dark"] .session-menu-trigger,
         body[data-theme="dark"] .session-menu,
         body[data-theme="dark"] .session-menu-item,
@@ -1013,6 +1039,7 @@ APP_HTML = r"""
         body[data-theme="dark"] .sources-button,
         body[data-theme="dark"] .sources-modal-close,
         body[data-theme="dark"] .sources-modal-item,
+        body[data-theme="dark"] .share-option-btn,
         body[data-theme="dark"] .session-menu-trigger,
         body[data-theme="dark"] .session-menu {
             background: rgba(15, 23, 42, 0.96);
@@ -1174,6 +1201,24 @@ APP_HTML = r"""
         </div>
     </div>
 
+    <div class="sources-modal" id="share_modal" aria-hidden="true">
+        <div class="sources-modal-card" role="dialog" aria-modal="true" aria-labelledby="share_modal_title">
+            <div class="sources-modal-header">
+                <div>
+                    <h3 id="share_modal_title">Share</h3>
+                    <p>Pick a platform. The message is copied first, then redirected.</p>
+                </div>
+                <button class="sources-modal-close" id="share_modal_close" type="button" aria-label="Close share popup">×</button>
+            </div>
+            <div class="share-options">
+                <button class="share-option-btn" id="share_whatsapp" type="button">Share on WhatsApp</button>
+                <button class="share-option-btn" id="share_instagram" type="button">Share on Instagram</button>
+                <button class="share-option-btn" id="share_mail" type="button">Share via Email</button>
+                <button class="share-option-btn" id="share_copy" type="button">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const queryEl = document.getElementById('query');
         const useMemoryEl = document.getElementById('use_memory');
@@ -1190,6 +1235,12 @@ APP_HTML = r"""
         const sourcesModalEl = document.getElementById('sources_modal');
         const sourcesModalListEl = document.getElementById('sources_modal_list');
         const sourcesModalCloseEl = document.getElementById('sources_modal_close');
+        const shareModalEl = document.getElementById('share_modal');
+        const shareModalCloseEl = document.getElementById('share_modal_close');
+        const shareWhatsAppEl = document.getElementById('share_whatsapp');
+        const shareInstagramEl = document.getElementById('share_instagram');
+        const shareMailEl = document.getElementById('share_mail');
+        const shareCopyEl = document.getElementById('share_copy');
         const themeToggleEl = document.getElementById('theme_toggle');
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
@@ -1213,6 +1264,7 @@ APP_HTML = r"""
         let activeStream = null;
         let activeAssistantMessageId = null;
         let activeRequestId = null;
+        let activeShareText = '';
 
         const nowIso = () => new Date().toISOString();
         const setStatus = (text) => { statusEl.textContent = text; };
@@ -1422,6 +1474,45 @@ APP_HTML = r"""
         const closeSourcesModal = () => {
             sourcesModalEl.classList.remove('open');
             sourcesModalEl.setAttribute('aria-hidden', 'true');
+        };
+
+        const openShareModal = (shareText) => {
+            activeShareText = shareText || '';
+            shareModalEl.classList.add('open');
+            shareModalEl.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeShareModal = () => {
+            shareModalEl.classList.remove('open');
+            shareModalEl.setAttribute('aria-hidden', 'true');
+        };
+
+        const buildShareText = (session) => {
+            const lastAssistant = [...(session?.messages || [])].reverse().find((m) => m.role === 'assistant');
+            return [
+                `Tarka session: ${session?.title || 'Session'}`,
+                lastAssistant?.content || 'No assistant response yet.',
+                ...(lastAssistant?.source_urls || []).slice(0, 5),
+            ].join('\n\n');
+        };
+
+        const copyShareText = async (text) => {
+            if (!text) return false;
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
+        const openExternal = (url) => {
+            const win = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!win) {
+                setStatus('Popup blocked by browser. Allow popups and try again.');
+                return false;
+            }
+            return true;
         };
 
         const renderSessions = () => {
@@ -1831,10 +1922,17 @@ APP_HTML = r"""
                 closeSourcesModal();
             }
         });
+        shareModalCloseEl.addEventListener('click', closeShareModal);
+        shareModalEl.addEventListener('click', (event) => {
+            if (event.target === shareModalEl) {
+                closeShareModal();
+            }
+        });
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeSourcesModal();
+                closeShareModal();
             }
         });
 
@@ -1884,19 +1982,40 @@ APP_HTML = r"""
                 return;
             }
 
-            const lastAssistant = [...session.messages].reverse().find((m) => m.role === 'assistant');
-            const shareText = [
-                `Tarka session: ${session.title || 'Session'}`,
-                lastAssistant?.content || 'No assistant response yet.',
-                ...(lastAssistant?.source_urls || []).slice(0, 5),
-            ].join('\n\n');
+            openShareModal(buildShareText(session));
+            setStatus('Choose a platform to share.');
+        });
 
-            try {
-                await navigator.clipboard.writeText(shareText);
-                setStatus('Share summary copied to clipboard.');
-            } catch {
-                setStatus('Clipboard access failed.');
+        shareCopyEl.addEventListener('click', async () => {
+            const copied = await copyShareText(activeShareText);
+            setStatus(copied ? 'Share summary copied to clipboard.' : 'Clipboard access failed.');
+            closeShareModal();
+        });
+
+        shareWhatsAppEl.addEventListener('click', async () => {
+            const copied = await copyShareText(activeShareText);
+            const shareUrl = `https://wa.me/?text=${encodeURIComponent(activeShareText)}`;
+            if (openExternal(shareUrl)) {
+                setStatus(copied ? 'Copied and opened WhatsApp.' : 'Opened WhatsApp. Paste if needed.');
+                closeShareModal();
             }
+        });
+
+        shareInstagramEl.addEventListener('click', async () => {
+            const copied = await copyShareText(activeShareText);
+            if (openExternal('https://www.instagram.com/')) {
+                setStatus(copied ? 'Copied and opened Instagram. Paste in DM or post draft.' : 'Opened Instagram. Paste content manually.');
+                closeShareModal();
+            }
+        });
+
+        shareMailEl.addEventListener('click', async () => {
+            const copied = await copyShareText(activeShareText);
+            const subject = encodeURIComponent('Tarka research summary');
+            const body = encodeURIComponent(activeShareText || 'Shared from Tarka.');
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            setStatus(copied ? 'Copied and opened email draft.' : 'Opened email draft. Paste if needed.');
+            closeShareModal();
         });
 
         themeToggleEl.addEventListener('change', () => {
