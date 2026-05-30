@@ -868,12 +868,20 @@ APP_HTML = r"""
         }
 
         .voice-panel {
-            display: grid;
+            display: none;
             gap: 14px;
             padding: 16px;
             border: 1px solid var(--line);
             border-radius: 20px;
             background: rgba(255,255,255,0.78);
+        }
+
+        .voice-panel.open {
+            display: grid;
+        }
+
+        .voice-mode-btn {
+            border-style: dashed;
         }
 
         .voice-panel-header {
@@ -1383,6 +1391,7 @@ APP_HTML = r"""
 
                         <div class="composer-row">
                                 <div class="actions">
+                                    <button class="btn btn-secondary voice-mode-btn" id="voice_mode_btn" type="button">Voice mode</button>
                                     <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
                                     <select id="memory_mode" class="memory-select" aria-label="Memory mode">
                                         <option value="balanced" selected>Memory mode: Balanced</option>
@@ -1457,6 +1466,7 @@ APP_HTML = r"""
         const shareMailEl = document.getElementById('share_mail');
         const shareCopyEl = document.getElementById('share_copy');
         const themeToggleEl = document.getElementById('theme_toggle');
+        const voiceModeBtnEl = document.getElementById('voice_mode_btn');
         const voicePanelEl = document.getElementById('voice_panel');
         const voiceToggleEl = document.getElementById('voice_toggle');
         const voiceStopEl = document.getElementById('voice_stop');
@@ -1646,6 +1656,12 @@ APP_HTML = r"""
 
         const setVoiceStatus = (text) => {
             voiceStatusEl.textContent = text;
+        };
+
+        const setVoicePanelOpen = (isOpen) => {
+            voicePanelEl.classList.toggle('open', isOpen);
+            voiceModeBtnEl.textContent = isOpen ? 'Hide voice mode' : 'Voice mode';
+            voiceModeBtnEl.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         };
 
         const applyVoiceAccessibility = () => {
@@ -1859,6 +1875,7 @@ APP_HTML = r"""
             voiceToggleEl.disabled = !SpeechRecognitionCtor;
             voiceStopEl.disabled = !SpeechRecognitionCtor;
             voicePlayAnswerEl.disabled = !window.speechSynthesis;
+            setVoicePanelOpen(false);
         };
 
         const speakEvidenceForClaim = (claim) => {
@@ -2848,6 +2865,12 @@ APP_HTML = r"""
         });
 
         runBtn.addEventListener('click', sendMessage);
+
+        voiceModeBtnEl.addEventListener('click', () => {
+            const isOpen = !voicePanelEl.classList.contains('open');
+            setVoicePanelOpen(isOpen);
+            setStatus(isOpen ? 'Voice mode opened.' : 'Voice mode hidden.');
+        });
 
         queryEl.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
