@@ -7,7 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
-from llm import generate_text
+from llm import generate_text, safe_json_loads
 from memory.store import memory
 from observability.logger import log_agent_call, logger
 from state.schema import ResearchState, SearchResult
@@ -58,8 +58,16 @@ def _generate_sub_queries(
         if hints:
             memory_context = "\n\nPrior memory hints (for query rewriting only, not as evidence):\n" + "\n".join(hints)
 
-    raw = json.loads(generate_text(_SUB_QUERY_PROMPT, f"Query: {query}{conversation_context}{context}{memory_context}", max_tokens=500, json_mode=True))
-    return raw.get("sub_queries", [])[:3]
+    raw_text = generate_text(_SUB_QUERY_PROMPT, f"Query: {query}{conversation_context}{context}{memory_context}", max_tokens=500, json_mode=True)
+    raw = safe_json_loads(raw_text, default_fallback={"sub_queries": [query]})
+    
+    if not isinstance(raw, dict):
+        raw = {"sub_queries": [query]}
+    sub_queries = raw.get("sub_queries")
+    if not isinstance(sub_queries, list):
+        sub_queries = [query]
+        
+    return sub_queries[:3]
 
 
 def _normalize_url(url: str) -> str:
