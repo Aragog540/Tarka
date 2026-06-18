@@ -1,6 +1,6 @@
 import json
 
-from llm import generate_text
+from llm import generate_text, safe_json_loads
 from observability.logger import log_agent_call, logger
 from state.schema import Claim, ResearchState, SearchResult, Summary
 
@@ -77,10 +77,16 @@ def summarizer_node(state: ResearchState) -> dict:
 
     formatted = _format_results(results)
 
-    raw = json.loads(generate_text(_SYSTEM_PROMPT, f"Research query: {query}{conversation_context}\n\nSearch results:\n{formatted}", max_tokens=1500, json_mode=True))
+    raw_text = generate_text(_SYSTEM_PROMPT, f"Research query: {query}{conversation_context}\n\nSearch results:\n{formatted}", max_tokens=1500, json_mode=True)
+    raw = safe_json_loads(raw_text, default_fallback={"claims": [], "raw_summary": "Summary generation or parsing failed."})
+
+    if not isinstance(raw, dict):
+        raw = {"claims": [], "raw_summary": "Summary generation or parsing failed."}
 
     claims = []
-    for item in raw.get("claims", []):
+    for item in raw.get("claims", []) or []:
+        if not isinstance(item, dict):
+            continue
         confidence = item.get("confidence", "medium")
         claims.append(Claim(
             claim=item.get("claim", "").strip(),
@@ -91,7 +97,7 @@ def summarizer_node(state: ResearchState) -> dict:
             evidence_snippet=item.get("evidence_snippet", "").strip()[:280],
             evidence_chunk_id=item.get("evidence_chunk_id", "").strip(),
         ))
-    summary = Summary(claims=claims, raw_summary=raw["raw_summary"])
+    summary = Summary(claims=claims, raw_summary=raw.get("raw_summary", "Summary generation or parsing failed."))
 
     logger.info(f"[summarizer] extracted {len(claims)} claims")
 
