@@ -1,6 +1,6 @@
 import json
 
-from llm import generate_text
+from llm import generate_text, safe_json_loads
 from observability.logger import log_agent_call, logger
 from state.schema import Critique, CritiqueGap, ResearchState
 MAX_ITERATIONS = 3
@@ -71,7 +71,14 @@ def critic_node(state: ResearchState) -> dict:
         for c in summary.claims
     )
 
-    raw = json.loads(generate_text(
+    fallback_critique = {
+        "gaps": [],
+        "verified_claims": [],
+        "should_continue": False,
+        "reasoning": "Critique parsing failed.",
+    }
+
+    raw_text = generate_text(
         _SYSTEM_PROMPT,
         (
             f"Research query: {query}{conversation_context}\n\n"
@@ -81,14 +88,22 @@ def critic_node(state: ResearchState) -> dict:
         ),
         max_tokens=1000,
         json_mode=True,
-    ))
+    )
+    raw = safe_json_loads(raw_text, default_fallback=fallback_critique)
 
-    gaps = [CritiqueGap(**g) for g in raw.get("gaps", [])]
+    if not isinstance(raw, dict):
+        raw = fallback_critique
+
+    gaps = []
+    for g in raw.get("gaps", []) or []:
+        if isinstance(g, dict) and "description" in g and "suggested_query" in g:
+            gaps.append(CritiqueGap(description=g["description"], suggested_query=g["suggested_query"]))
+
     critique = Critique(
         gaps=gaps,
-        verified_claims=raw.get("verified_claims", []),
-        should_continue=raw.get("should_continue", False),
-        reasoning=raw.get("reasoning", ""),
+        verified_claims=raw.get("verified_claims") or [],
+        should_continue=bool(raw.get("should_continue", False)),
+        reasoning=raw.get("reasoning", "Critique parsing failed."),
     )
 
     logger.info(
