@@ -2,7 +2,11 @@ import asyncio
 import json
 import time
 import uuid
-from typing import AsyncGenerator
+import sqlite3
+import requests
+from datetime import datetime, date
+from typing import AsyncGenerator, Optional
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +16,75 @@ from pydantic import BaseModel
 from graph.research_graph import research_graph
 from memory.store import memory
 from observability.logger import logger
+
+load_dotenv()
+
+DB_FILE = "tarka.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            google_id TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            name TEXT,
+            picture TEXT,
+            dob TEXT,
+            preferred_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            session_token TEXT PRIMARY KEY,
+            google_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            FOREIGN KEY (google_id) REFERENCES users(google_id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
+
+def calculate_age(born_str: str) -> int:
+    try:
+        born = datetime.strptime(born_str, "%Y-%m-%d").date()
+        today = date.today()
+        return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    except Exception:
+        return 0
+
+
+def get_user_from_session(session_token: str) -> Optional[dict]:
+    if not session_token:
+        return None
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT u.google_id, u.email, u.name, u.picture, u.dob, u.preferred_name
+            FROM sessions s
+            JOIN users u ON s.google_id = u.google_id
+            WHERE s.session_token = ?
+        """, (session_token,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "google_id": row[0],
+                "email": row[1],
+                "name": row[2],
+                "picture": row[3],
+                "dob": row[4],
+                "preferred_name": row[5]
+            }
+    except Exception as e:
+        logger.error(f"[db] error getting user from session: {e}")
+    return None
 
 app = FastAPI(
     title="Tarka",
@@ -1341,9 +1414,240 @@ APP_HTML = r"""
             .share-options { grid-template-columns: 1fr; }
         }
 
+        /* Authentication & Onboarding UI Styles */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3, 7, 18, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 24px;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-card {
+            width: min(440px, 100%);
+            padding: 36px;
+            border-radius: 24px;
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+            animation: auth-modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes auth-modal-in {
+            from { transform: scale(0.95) translateY(12px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .auth-logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .auth-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .auth-desc {
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .auth-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .auth-form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .auth-input {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .auth-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        .auth-error {
+            color: #ef4444;
+            font-size: 0.82rem;
+            font-weight: 500;
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            padding: 10px 14px;
+            border-radius: 10px;
+            display: none;
+            text-align: left;
+        }
+
+        .dev-login-box {
+            border-top: 1px dashed var(--line);
+            padding-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .dev-login-box p {
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Account profile bar inside sidebar */
+        .user-profile-bar {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .user-profile-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .user-profile-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--line);
+        }
+
+        .user-profile-details {
+            display: grid;
+            gap: 1px;
+            min-width: 0;
+        }
+
+        .user-profile-details strong {
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-profile-details span {
+            color: var(--muted);
+            font-size: 0.7rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-logout {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            border-radius: 8px;
+        }
+
     </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+    <!-- Authentication Overlay -->
+    <div class="auth-overlay" id="auth_overlay" style="display: none;">
+        <!-- Step 1: Login -->
+        <div class="auth-card" id="login_card">
+            <div class="auth-logo">Tarka</div>
+            <h1 class="auth-title">Welcome to Tarka</h1>
+            <p class="auth-desc">Please sign in with your Google account to access the LangGraph-powered research assistant.</p>
+            
+            <div id="auth_error" class="auth-error"></div>
+            
+            <div style="display: flex; justify-content: center; margin: 10px 0;" id="google_signin_wrapper">
+                <div id="g_id_onload"
+                     data-client_id="GOOGLE_CLIENT_ID_PLACEHOLDER"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="filled_blue"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <!-- Dev mode / mock sign-in when GOOGLE_CLIENT_ID is not configured -->
+            <div class="dev-login-box" id="dev_login_box" style="display: none;">
+                <p>Developer Mock Login</p>
+                <div class="auth-form-group">
+                    <input type="email" id="mock_email" class="auth-input" placeholder="Enter developer email (e.g. dev@example.com)" />
+                </div>
+                <button class="btn btn-primary" id="btn_mock_login" type="button" style="width: 100%; border-radius: 12px; margin-top: 4px;">Mock Sign In</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Onboarding -->
+        <div class="auth-card" id="onboarding_card" style="display: none;">
+            <div class="auth-logo">Tarka</div>
+            <h1 class="auth-title">Complete Your Profile</h1>
+            <p class="auth-desc">Just a couple of details to personalize your research experience.</p>
+            
+            <div id="onboarding_error" class="auth-error"></div>
+
+            <form id="onboarding_form" onsubmit="event.preventDefault();">
+                <div class="auth-form-group" style="margin-bottom: 16px;">
+                    <label for="onboarding_dob">Date of Birth</label>
+                    <input type="date" id="onboarding_dob" class="auth-input" required />
+                </div>
+                <div class="auth-form-group" style="margin-bottom: 24px;">
+                    <label for="onboarding_preferred_name">What should Tarka call you?</label>
+                    <input type="text" id="onboarding_preferred_name" class="auth-input" placeholder="e.g. Swaroop, Doctor, Captain" required />
+                </div>
+                <button class="btn btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;" id="btn_submit_onboarding" type="submit">Complete Setup</button>
+            </form>
+        </div>
+    </div>
+
     <div class="drawer-overlay" id="drawer_overlay"></div>
     
     <button class="drawer-toggle" id="drawer_toggle" type="button" aria-label="Toggle sidebar">
@@ -1368,7 +1672,7 @@ APP_HTML = r"""
         </div>
         <div class="history-list" id="history_list"></div>
 
-        <div class="maker-card" aria-label="Maker information">
+        <div class="maker-card" aria-label="Maker information" style="margin-bottom: 16px;">
             <div class="maker-top">
                 <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
                 <div class="maker-copy">
@@ -1381,6 +1685,18 @@ APP_HTML = r"""
                 <a class="maker-link" href="https://linkedin.com/in/swaroop-bhowmik-8907b52a0/" target="_blank" rel="noreferrer">LinkedIn</a>
                 <a class="maker-link" href="https://www.instagram.com/_.swar.oop._/" target="_blank" rel="noreferrer">Instagram</a>
             </div>
+        </div>
+
+        <!-- User Profile info at the bottom -->
+        <div class="user-profile-bar" id="user_profile_bar" style="display: none;">
+            <div class="user-profile-info">
+                <img class="user-profile-avatar" id="user_avatar" src="" alt="User avatar" />
+                <div class="user-profile-details">
+                    <strong id="user_name">User Name</strong>
+                    <span id="user_email">user@example.com</span>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-logout" id="btn_logout" type="button">Logout</button>
         </div>
     </aside>
 
@@ -1574,10 +1890,34 @@ APP_HTML = r"""
         const drawerCloseEl = document.getElementById('drawer_close');
         const drawerOverlayEl = document.getElementById('drawer_overlay');
         const sidebarDrawerEl = document.getElementById('sidebar_drawer');
+
+        // Authentication DOM selectors
+        const authOverlayEl = document.getElementById('auth_overlay');
+        const loginCardEl = document.getElementById('login_card');
+        const onboardingCardEl = document.getElementById('onboarding_card');
+        const authErrorEl = document.getElementById('auth_error');
+        const onboardingErrorEl = document.getElementById('onboarding_error');
+        const devLoginBoxEl = document.getElementById('dev_login_box');
+        const mockEmailEl = document.getElementById('mock_email');
+        const btnMockLoginEl = document.getElementById('btn_mock_login');
+        const onboardingDobEl = document.getElementById('onboarding_dob');
+        const onboardingPreferredNameEl = document.getElementById('onboarding_preferred_name');
+        const btnSubmitOnboardingEl = document.getElementById('btn_submit_onboarding');
+        const userProfileBarEl = document.getElementById('user_profile_bar');
+        const userAvatarEl = document.getElementById('user_avatar');
+        const userNameEl = document.getElementById('user_name');
+        const userEmailEl = document.getElementById('user_email');
+        const btnLogoutEl = document.getElementById('btn_logout');
+
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
         const THEME_KEY = 'research-theme';
         const VOICE_KEY = 'tarka-voice-settings';
+        const SESSION_TOKEN_KEY = 'tarka-session-token';
+
+        let currentUser = null;
+        let sessionToken = localStorage.getItem(SESSION_TOKEN_KEY) || '';
+
         const MAX_SESSIONS = 20;
         const MAX_CONTEXT_MESSAGES = 8;
         const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -1627,6 +1967,176 @@ APP_HTML = r"""
                 sidebarDrawerEl.classList.remove('open');
                 drawerOverlayEl.classList.remove('open');
             }
+        };
+
+        // Setup authentication handlers
+        const updateAuthUI = (user) => {
+            if (user) {
+                currentUser = user;
+                authOverlayEl.style.display = 'none';
+                userProfileBarEl.style.display = 'flex';
+                userAvatarEl.src = user.picture || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.email;
+                userNameEl.textContent = user.preferred_name || user.name;
+                userEmailEl.textContent = user.email;
+
+                // Load and render active sessions when signed in
+                loadSessions();
+                renderSessions();
+                renderMessages();
+            } else {
+                currentUser = null;
+                sessionToken = '';
+                localStorage.removeItem(SESSION_TOKEN_KEY);
+                userProfileBarEl.style.display = 'none';
+                authOverlayEl.style.display = 'flex';
+                showLogin();
+                
+                const clientId = "GOOGLE_CLIENT_ID_PLACEHOLDER";
+                if (!clientId || clientId === "GOOGLE_CLIENT_ID_PLACEHOLDER") {
+                    document.getElementById('google_signin_wrapper').style.display = 'none';
+                    devLoginBoxEl.style.display = 'block';
+                } else {
+                    document.getElementById('google_signin_wrapper').style.display = 'flex';
+                    devLoginBoxEl.style.display = 'none';
+                }
+            }
+        };
+
+        const handleAuthResponse = async (payload) => {
+            if (payload.session_token) {
+                sessionToken = payload.session_token;
+                localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+                
+                if (payload.first_time) {
+                    showOnboarding();
+                } else {
+                    updateAuthUI(payload);
+                }
+            } else {
+                showAuthError("Authentication failed: No session token received.");
+            }
+        };
+
+        const showAuthError = (msg) => {
+            authErrorEl.textContent = msg;
+            authErrorEl.style.display = 'block';
+        };
+
+        const showOnboardingError = (msg) => {
+            onboardingErrorEl.textContent = msg;
+            onboardingErrorEl.style.display = 'block';
+        };
+
+        const showOnboarding = () => {
+            loginCardEl.style.display = 'none';
+            onboardingCardEl.style.display = 'block';
+        };
+
+        const showLogin = () => {
+            loginCardEl.style.display = 'block';
+            onboardingCardEl.style.display = 'none';
+        };
+
+        window.handleCredentialResponse = async (response) => {
+            authErrorEl.style.display = 'none';
+            try {
+                const res = await fetch('/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Google sign in failed');
+                }
+                const data = await res.json();
+                await handleAuthResponse(data);
+            } catch (err) {
+                showAuthError(err.message);
+            }
+        };
+
+        const performMockLogin = async () => {
+            authErrorEl.style.display = 'none';
+            const email = mockEmailEl.value.trim();
+            if (!email) {
+                showAuthError("Please enter an email.");
+                return;
+            }
+            try {
+                const res = await fetch('/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mock_email: email })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Mock sign in failed');
+                }
+                const data = await res.json();
+                await handleAuthResponse(data);
+            } catch (err) {
+                showAuthError(err.message);
+            }
+        };
+
+        const performOnboarding = async () => {
+            onboardingErrorEl.style.display = 'none';
+            const dob = onboardingDobEl.value;
+            const preferredName = onboardingPreferredNameEl.value.trim();
+            if (!dob || !preferredName) {
+                showOnboardingError("All fields are required.");
+                return;
+            }
+            
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            if (age < 13) {
+                showOnboardingError("You must be at least 13 years old to use Tarka.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/auth/complete-setup?session_token=${encodeURIComponent(sessionToken)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dob, preferred_name: preferredName })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Setup completion failed');
+                }
+                const data = await res.json();
+                updateAuthUI(data);
+            } catch (err) {
+                showOnboardingError(err.message);
+            }
+        };
+
+        const validateSession = async () => {
+            if (!sessionToken) {
+                updateAuthUI(null);
+                return;
+            }
+            try {
+                const res = await fetch(`/auth/user-profile?session_token=${encodeURIComponent(sessionToken)}`);
+                if (!res.ok) {
+                    throw new Error("Session expired");
+                }
+                const user = await res.json();
+                updateAuthUI(user);
+            } catch {
+                updateAuthUI(null);
+            }
+        };
+
+        const performLogout = () => {
+            updateAuthUI(null);
         };
 
         let sessions = [];
@@ -2709,6 +3219,7 @@ APP_HTML = r"""
                 context,
                 use_memory: useMemory ? '1' : '0',
                 memory_mode: memoryModeEl.value,
+                session_token: sessionToken,
             });
 
             const source = new EventSource(`/research/stream?${params.toString()}`);
@@ -2892,11 +3403,8 @@ APP_HTML = r"""
             }
         };
 
-        loadSessions();
         applyTheme(loadTheme());
         initializeVoiceSettings();
-        renderSessions();
-        renderMessages();
         initSidebar();
 
         if (window.speechSynthesis) {
@@ -3100,10 +3608,31 @@ APP_HTML = r"""
                 sendMessage();
             }
         });
+
+        // Bind Authentication Event Listeners
+        btnMockLoginEl.addEventListener('click', performMockLogin);
+        document.getElementById('onboarding_form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            performOnboarding();
+        });
+        btnLogoutEl.addEventListener('click', performLogout);
+
+        // Run session validation on page load
+        validateSession();
     </script>
 </body>
 </html>
 """
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: Optional[str] = None
+    mock_email: Optional[str] = None
+
+
+class CompleteSetupRequest(BaseModel):
+    dob: str
+    preferred_name: str
 
 
 class ResearchRequest(BaseModel):
@@ -3111,6 +3640,7 @@ class ResearchRequest(BaseModel):
     use_memory: bool = True
     memory_mode: str = "balanced"
     conversation_context: str = ""
+    session_token: Optional[str] = None
 
 
 class ResearchResponse(BaseModel):
@@ -3162,13 +3692,20 @@ def _chunk_text(text: str, chunk_size: int = 24) -> list[str]:
 
 @app.get("/", response_class=HTMLResponse)
 async def homepage():
-    return HTMLResponse(APP_HTML)
+    import os
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    html = APP_HTML.replace("GOOGLE_CLIENT_ID_PLACEHOLDER", client_id)
+    return HTMLResponse(html)
 
 
 @app.post("/research", response_model=ResearchResponse)
 async def run_research(request: ResearchRequest):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    user = get_user_from_session(request.session_token)
+    if not user or not user.get("dob") or not user.get("preferred_name"):
+        raise HTTPException(status_code=401, detail="Unauthorized: Please complete login and onboarding.")
 
     request_id = str(uuid.uuid4())[:8]
     logger.info(f"[api] request_id={request_id} query={request.query!r}")
@@ -3200,6 +3737,7 @@ async def run_research(request: ResearchRequest):
     initial_state = {
         "query": request.query,
         "conversation_context": request.conversation_context,
+        "preferred_name": user["preferred_name"],
         "memory_mode": memory_mode if request.use_memory else "search_only",
         "search_results": [],
         "summary": None,
@@ -3241,9 +3779,13 @@ async def run_research(request: ResearchRequest):
 
 
 @app.get("/research/stream")
-async def stream_research(query: str, context: str = "", use_memory: bool = True, memory_mode: str = "balanced"):
+async def stream_research(query: str, context: str = "", use_memory: bool = True, memory_mode: str = "balanced", session_token: str = ""):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    user = get_user_from_session(session_token)
+    if not user or not user.get("dob") or not user.get("preferred_name"):
+        raise HTTPException(status_code=401, detail="Unauthorized: Please complete login and onboarding.")
 
     async def event_generator() -> AsyncGenerator[str, None]:
         request_id = str(uuid.uuid4())[:8]
@@ -3267,6 +3809,7 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
         initial_state = {
             "query": query,
             "conversation_context": context,
+            "preferred_name": user["preferred_name"],
             "memory_mode": resolved_memory_mode if use_memory else "search_only",
             "search_results": [],
             "summary": None,
@@ -3316,6 +3859,128 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.post("/auth/google")
+async def auth_google(req: GoogleLoginRequest):
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    user_info = None
+
+    if google_client_id and req.credential:
+        try:
+            resp = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={req.credential}")
+            if resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Invalid Google token.")
+            data = resp.json()
+            if data.get("aud") != google_client_id:
+                raise HTTPException(status_code=400, detail="Token audience mismatch.")
+            
+            user_info = {
+                "google_id": data.get("sub"),
+                "email": data.get("email"),
+                "name": data.get("name"),
+                "picture": data.get("picture", f"https://api.dicebear.com/7.x/bottts/svg?seed={data.get('email')}")
+            }
+        except Exception as e:
+            logger.error(f"[auth] google token verification failed: {e}")
+            raise HTTPException(status_code=400, detail=f"Google token verification failed: {str(e)}")
+            
+    elif req.mock_email:
+        email = req.mock_email.strip().lower()
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Invalid mock email.")
+        name = email.split("@")[0].capitalize()
+        user_info = {
+            "google_id": f"mock_{email}",
+            "email": email,
+            "name": name,
+            "picture": f"https://api.dicebear.com/7.x/bottts/svg?seed={email}"
+        }
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail="Google Client ID is configured but no credential token was provided. "
+                   "Or, if you are developing locally, please provide a mock email."
+        )
+
+    google_id = user_info["google_id"]
+    email = user_info["email"]
+    name = user_info["name"]
+    picture = user_info["picture"]
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT dob, preferred_name FROM users WHERE google_id = ?", (google_id,))
+    row = cursor.fetchone()
+    
+    first_time = True
+    dob = None
+    preferred_name = None
+    
+    if not row:
+        cursor.execute(
+            "INSERT INTO users (google_id, email, name, picture, dob, preferred_name) VALUES (?, ?, ?, ?, NULL, NULL)",
+            (google_id, email, name, picture)
+        )
+    else:
+        dob, preferred_name = row
+        if dob and preferred_name:
+            first_time = False
+
+    session_token = str(uuid.uuid4())
+    cursor.execute(
+        "INSERT INTO sessions (session_token, google_id) VALUES (?, ?)",
+        (session_token, google_id)
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "session_token": session_token,
+        "first_time": first_time,
+        "email": email,
+        "name": name,
+        "picture": picture,
+        "preferred_name": preferred_name
+    }
+
+
+@app.post("/auth/complete-setup")
+async def auth_complete_setup(req: CompleteSetupRequest, session_token: str = ""):
+    user = get_user_from_session(session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    dob = req.dob.strip()
+    preferred_name = req.preferred_name.strip()
+    
+    if not dob or not preferred_name:
+        raise HTTPException(status_code=400, detail="DOB and preferred name are required.")
+        
+    age = calculate_age(dob)
+    if age < 13:
+        raise HTTPException(status_code=400, detail="You must be at least 13 years old to sign up.")
+        
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET dob = ?, preferred_name = ? WHERE google_id = ?",
+        (dob, preferred_name, user["google_id"])
+    )
+    conn.commit()
+    conn.close()
+    
+    user["dob"] = dob
+    user["preferred_name"] = preferred_name
+    return user
+
+
+@app.get("/auth/user-profile")
+async def auth_user_profile(session_token: str = ""):
+    user = get_user_from_session(session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid session token.")
+    return user
 
 
 @app.get("/memory/search")
