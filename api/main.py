@@ -111,7 +111,7 @@ APP_HTML = r"""
     <title>Tarka</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f8fafc;
@@ -129,6 +129,20 @@ APP_HTML = r"""
             --radius-inner: 12px;
             
             --status-color: #10b981;
+
+            /* Mochi Light Theme Variables */
+            --mochi-bg: #f3dfa7;
+            --mochi-bg-input: #FFFFFF;
+            --mochi-border-input: #4A8C72;
+            --mochi-text: #2C2418;
+            --mochi-muted: #7A6A56;
+            --mochi-label: #3A6B52;
+            --mochi-accent: #c0694c;
+            --mochi-btn-bg: #3A6B52;
+            --mochi-btn-text: #FFFFFF;
+            --mochi-toggle-track: #d3c090;
+            --mochi-toggle-thumb: #3A6B52;
+            --mochi-input-shadow: rgba(74, 140, 114, 0.15);
         }
 
         body[data-theme="dark"] {
@@ -143,6 +157,20 @@ APP_HTML = r"""
             --accent-strong: #6366f1;
             --accent-soft: rgba(99, 102, 241, 0.15);
             --shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4), 0 10px 15px -5px rgba(0, 0, 0, 0.4);
+
+            /* Mochi Dark Theme Variables */
+            --mochi-bg: #36312a;
+            --mochi-bg-input: #2A2318;
+            --mochi-border-input: #5DCAA5;
+            --mochi-text: #F0E8D5;
+            --mochi-muted: #A89880;
+            --mochi-label: #5DCAA5;
+            --mochi-accent: #F0997B;
+            --mochi-btn-bg: #5DCAA5;
+            --mochi-btn-text: #1C1812;
+            --mochi-toggle-track: #4c4436;
+            --mochi-toggle-thumb: #5DCAA5;
+            --mochi-input-shadow: rgba(93, 202, 165, 0.1);
         }
 
         * {
@@ -1415,7 +1443,7 @@ APP_HTML = r"""
             .share-options { grid-template-columns: 1fr; }
         }
 
-        /* Authentication & Onboarding UI Styles */
+        /* Authentication & Onboarding UI Styles (Mochi Full-Screen Layout) */
         .auth-overlay {
             position: fixed;
             inset: 0;
@@ -1423,25 +1451,74 @@ APP_HTML = r"""
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(3, 7, 18, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            padding: 24px;
-            transition: opacity 0.3s ease;
+            background: var(--mochi-bg);
+            padding: 40px 24px 24px;
+            transition: background 0.3s, color 0.3s;
+            overflow-y: auto;
+            font-family: 'Nunito', 'Outfit', sans-serif;
         }
 
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+            max-width: 960px;
+            margin: auto;
+        }
+
+        .auth-form-column {
+            flex: 1;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .auth-char-column {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .char-wrap {
+            position: relative;
+            width: 440px;
+            height: 510px;
+            user-select: none;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .char-wrap img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #img-base { z-index: 1; }
+        #img-eyes { z-index: 2; transition: transform 0.05s linear; }
+        #img-expr { z-index: 3; opacity: 0; transition: opacity 0.15s ease; }
+        #img-expr.visible { opacity: 1; }
+
         .auth-card {
-            width: min(440px, 100%);
+            width: 100%;
             padding: 36px;
-            border-radius: 24px;
-            background: var(--panel-strong);
-            border: 1px solid var(--line);
-            box-shadow: var(--shadow);
+            border-radius: 32px;
+            background: var(--mochi-bg-input);
+            border: 2px solid var(--mochi-border-input);
+            box-shadow: 0 8px 30px var(--mochi-input-shadow);
             display: flex;
             flex-direction: column;
             gap: 20px;
             text-align: center;
             animation: auth-modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            color: var(--mochi-text);
         }
 
         @keyframes auth-modal-in {
@@ -1450,23 +1527,24 @@ APP_HTML = r"""
         }
 
         .auth-logo {
-            font-size: 2.2rem;
+            font-size: 2.6rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 4px;
+            color: var(--mochi-border-input);
+            font-family: 'Nunito', sans-serif;
+            margin-bottom: 2px;
+            letter-spacing: -0.02em;
         }
 
         .auth-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text);
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--mochi-text);
+            margin-bottom: 4px;
         }
 
         .auth-desc {
-            color: var(--muted);
-            font-size: 0.9rem;
+            color: var(--mochi-muted);
+            font-size: 0.95rem;
             line-height: 1.5;
             margin-bottom: 8px;
         }
@@ -1479,56 +1557,133 @@ APP_HTML = r"""
         }
 
         .auth-form-group label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--mochi-label);
+            margin-left: 16px;
         }
 
         .auth-input {
             width: 100%;
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-family: inherit;
-            font-size: 0.95rem;
-            background: var(--bg);
-            color: var(--text);
+            border: 2px solid var(--mochi-border-input);
+            border-radius: 50px;
+            padding: 14px 20px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            background: var(--mochi-bg-input);
+            color: var(--mochi-text);
             outline: none;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 8px var(--mochi-input-shadow);
         }
 
         .auth-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+            border-color: var(--mochi-label);
+            box-shadow: 0 0 0 3px var(--mochi-input-shadow), 0 2px 8px var(--mochi-input-shadow);
         }
 
         .auth-error {
-            color: #ef4444;
-            font-size: 0.82rem;
-            font-weight: 500;
-            background: rgba(239, 68, 68, 0.06);
-            border: 1px solid rgba(239, 68, 68, 0.15);
-            padding: 10px 14px;
-            border-radius: 10px;
+            color: var(--mochi-accent);
+            font-size: 0.85rem;
+            font-weight: 700;
+            background: var(--mochi-bg-input);
+            border: 2px solid var(--mochi-accent);
+            padding: 12px 16px;
+            border-radius: 16px;
             display: none;
             text-align: left;
+            box-shadow: 0 4px 12px rgba(192, 105, 76, 0.1);
         }
 
         .dev-login-box {
-            border-top: 1px dashed var(--line);
-            padding-top: 16px;
+            border-top: 2px dashed var(--mochi-border-input);
+            padding-top: 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-top: 8px;
+            margin-top: 12px;
         }
 
         .dev-login-box p {
-            font-size: 0.75rem;
-            color: var(--muted);
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 700;
             text-transform: uppercase;
+            color: var(--mochi-label);
             letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .auth-theme-toggle {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            background: var(--mochi-toggle-track);
+            border-radius: 20px;
+            padding: 3px;
+            cursor: pointer;
+            gap: 2px;
+            transition: background 0.3s;
+            border: none;
+            outline: none;
+            z-index: 2010;
+        }
+
+        .auth-theme-toggle .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .auth-theme-toggle .icon img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .auth-theme-toggle .icon.active {
+            background: var(--mochi-toggle-thumb);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            15% { transform: translateX(-8px); }
+            30% { transform: translateX(8px); }
+            45% { transform: translateX(-6px); }
+            60% { transform: translateX(6px); }
+            75% { transform: translateX(-3px); }
+            90% { transform: translateX(3px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .auth-char-column {
+                order: -1;
+                width: 100%;
+            }
+            .char-wrap {
+                width: 200px;
+                height: 247px;
+            }
+            .auth-form-column {
+                max-width: 100%;
+                width: 100%;
+            }
         }
 
         /* Account profile bar inside sidebar */
@@ -1589,63 +1744,83 @@ APP_HTML = r"""
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <!-- Authentication Overlay -->
+    <!-- Authentication Overlay (Full-screen Mochi Login Page) -->
     <div class="auth-overlay" id="auth_overlay" style="display: none;">
-        <!-- Step 1: Login -->
-        <div class="auth-card" id="login_card">
-            <div class="auth-logo">Tarka</div>
-            <h1 class="auth-title">Welcome to Tarka</h1>
-            <p class="auth-desc">Please sign in with your Google account.</p>
-            
-            <div id="auth_error" class="auth-error"></div>
-            
-            <div style="display: flex; justify-content: center; margin: 10px 0;" id="google_signin_wrapper">
-                <div id="g_id_onload"
-                     data-client_id="GOOGLE_CLIENT_ID_PLACEHOLDER"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleCredentialResponse"
-                     data-auto_prompt="false">
+        <!-- Theme Toggle specifically for the Login Screen -->
+        <button class="auth-theme-toggle" id="auth_theme_toggle" type="button" aria-label="Toggle dark mode">
+            <span class="icon active" id="auth_sun_icon"><img src="/static/SunToggle.png" alt="Light"></span>
+            <span class="icon" id="auth_moon_icon"><img src="/static/MoonToggle.png" alt="Dark"></span>
+        </button>
+
+        <div class="auth-container">
+            <!-- Left Side: Login Form Columns -->
+            <div class="auth-form-column">
+                <!-- Step 1: Login -->
+                <div class="auth-card" id="login_card">
+                    <div class="auth-logo">Tarka</div>
+                    <h1 class="auth-title">Welcome to Tarka</h1>
+                    <p class="auth-desc">Please sign in with your Google account.</p>
+                    
+                    <div id="auth_error" class="auth-error"></div>
+                    
+                    <div style="display: flex; justify-content: center; margin: 10px 0; min-height: 40px;" id="google_signin_wrapper">
+                        <div id="g_id_onload"
+                             data-client_id="GOOGLE_CLIENT_ID_PLACEHOLDER"
+                             data-context="signin"
+                             data-ux_mode="popup"
+                             data-callback="handleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-shape="pill"
+                             data-theme="filled_blue"
+                             data-text="signin_with"
+                             data-size="large"
+                             data-logo_alignment="left">
+                        </div>
+                    </div>
+
+                    <!-- Dev mode / mock sign-in when GOOGLE_CLIENT_ID is not configured -->
+                    <div class="dev-login-box" id="dev_login_box" style="display: none;">
+                        <p>Developer Mock Login</p>
+                        <div class="auth-form-group">
+                            <input type="email" id="mock_email" class="auth-input" placeholder="Sarah.example@gmail.com" />
+                        </div>
+                        <button class="btn-mochi" id="btn_mock_login" type="button" style="margin-top: 8px;">Mock Sign In</button>
+                    </div>
                 </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="pill"
-                     data-theme="filled_blue"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left">
+
+                <!-- Step 2: Onboarding -->
+                <div class="auth-card" id="onboarding_card" style="display: none;">
+                    <div class="auth-logo">Tarka</div>
+                    <h1 class="auth-title">Complete Your Profile</h1>
+                    <p class="auth-desc">Just a couple of details to personalize your research experience.</p>
+                    
+                    <div id="onboarding_error" class="auth-error"></div>
+
+                    <form id="onboarding_form" onsubmit="event.preventDefault();">
+                        <div class="auth-form-group" style="margin-bottom: 16px;">
+                            <label for="onboarding_dob">Date of Birth</label>
+                            <input type="date" id="onboarding_dob" class="auth-input" required />
+                        </div>
+                        <div class="auth-form-group" style="margin-bottom: 24px;">
+                            <label for="onboarding_preferred_name">What should Tarka call you?</label>
+                            <input type="text" id="onboarding_preferred_name" class="auth-input" placeholder="e.g. Swaroop, Doctor, Captain" required />
+                        </div>
+                        <button class="btn-mochi" id="btn_submit_onboarding" type="submit">Complete Setup</button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Dev mode / mock sign-in when GOOGLE_CLIENT_ID is not configured -->
-            <div class="dev-login-box" id="dev_login_box" style="display: none;">
-                <p>Developer Mock Login</p>
-                <div class="auth-form-group">
-                    <input type="email" id="mock_email" class="auth-input" placeholder="Enter developer email (e.g. dev@example.com)" />
+            <!-- Right Side: Mochi Character Column -->
+            <div class="auth-char-column">
+                <div class="char-wrap" id="charWrap">
+                    <img id="img-base" src="/static/original.png" alt="character">
+                    <img id="img-eyes" src="/static/eyes.png" alt="character eyes">
+                    <img id="img-expr" src="" alt="character expression">
                 </div>
-                <button class="btn btn-primary" id="btn_mock_login" type="button" style="width: 100%; border-radius: 12px; margin-top: 4px;">Mock Sign In</button>
             </div>
-        </div>
-
-        <!-- Step 2: Onboarding -->
-        <div class="auth-card" id="onboarding_card" style="display: none;">
-            <div class="auth-logo">Tarka</div>
-            <h1 class="auth-title">Complete Your Profile</h1>
-            <p class="auth-desc">Just a couple of details to personalize your research experience.</p>
-            
-            <div id="onboarding_error" class="auth-error"></div>
-
-            <form id="onboarding_form" onsubmit="event.preventDefault();">
-                <div class="auth-form-group" style="margin-bottom: 16px;">
-                    <label for="onboarding_dob">Date of Birth</label>
-                    <input type="date" id="onboarding_dob" class="auth-input" required />
-                </div>
-                <div class="auth-form-group" style="margin-bottom: 24px;">
-                    <label for="onboarding_preferred_name">What should Tarka call you?</label>
-                    <input type="text" id="onboarding_preferred_name" class="auth-input" placeholder="e.g. Swaroop, Doctor, Captain" required />
-                </div>
-                <button class="btn btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;" id="btn_submit_onboarding" type="submit">Complete Setup</button>
-            </form>
         </div>
     </div>
 
@@ -1919,6 +2094,121 @@ APP_HTML = r"""
         let currentUser = null;
         let sessionToken = localStorage.getItem(SESSION_TOKEN_KEY) || '';
 
+        // Mochi Character Variables & State
+        const imgEyesEl = document.getElementById('img-eyes');
+        const imgExprEl = document.getElementById('img-expr');
+        const charWrapEl = document.getElementById('charWrap');
+        
+        const MOCHI_IMGS = {
+            blink:     '/static/blink.png',
+            closed:    '/static/closed.png',
+            peek:      '/static/peek.png',
+            mad:       '/static/mad.png',
+            surprised: '/static/surprised.png',
+            sleepy:    '/static/sleepy.png'
+        };
+
+        let mochiState = 'default';
+        let mochiBlinkTimer = null;
+        let mochiIdleTimer = null;
+        let mochiResetTimer = null;
+
+        const setMochiState = (s) => {
+            if (mochiResetTimer && s !== 'blink') {
+                clearTimeout(mochiResetTimer);
+                mochiResetTimer = null;
+            }
+            mochiState = s;
+            if (s === 'default') {
+                if (imgEyesEl) imgEyesEl.style.display = '';
+                if (imgExprEl) imgExprEl.classList.remove('visible');
+                scheduleMochiBlink();
+                startMochiIdleTimer();
+            } else {
+                if (s !== 'blink') {
+                    if (imgEyesEl) imgEyesEl.style.display = 'none';
+                }
+                if (MOCHI_IMGS[s] && imgExprEl) {
+                    imgExprEl.src = MOCHI_IMGS[s];
+                    imgExprEl.classList.add('visible');
+                }
+            }
+        };
+
+        const scheduleMochiBlink = () => {
+            clearTimeout(mochiBlinkTimer);
+            mochiBlinkTimer = setTimeout(doMochiBlink, 3000 + Math.random() * 3000);
+        };
+
+        const doMochiBlink = async () => {
+            if (mochiState !== 'default') {
+                scheduleMochiBlink();
+                return;
+            }
+            await flashMochiBlink();
+            if (Math.random() < 0.25) {
+                await new Promise(r => setTimeout(r, 60));
+                await flashMochiBlink();
+            }
+            if (mochiState === 'default') scheduleMochiBlink();
+        };
+
+        const flashMochiBlink = () => {
+            return new Promise(res => {
+                if (imgEyesEl) imgEyesEl.style.display = 'none';
+                if (imgExprEl) {
+                    imgExprEl.src = MOCHI_IMGS.blink;
+                    imgExprEl.classList.add('visible');
+                }
+                setTimeout(() => {
+                    if (imgExprEl) imgExprEl.classList.remove('visible');
+                    if (mochiState === 'default' && imgEyesEl) imgEyesEl.style.display = '';
+                    res();
+                }, 140);
+            });
+        };
+
+        const startMochiIdleTimer = () => {
+            clearTimeout(mochiIdleTimer);
+            mochiIdleTimer = setTimeout(() => {
+                if (mochiState === 'default') setMochiState('sleepy');
+            }, 10000);
+        };
+
+        const resetMochiIdle = () => {
+            if (mochiState === 'sleepy') setMochiState('default');
+            startMochiIdleTimer();
+        };
+
+        document.addEventListener('mousemove', (e) => {
+            resetMochiIdle();
+            
+            if (mochiState !== 'default' || !charWrapEl || !imgEyesEl) return;
+            
+            const rect = charWrapEl.getBoundingClientRect();
+            if (rect.width === 0) return;
+            
+            const cx = rect.left + rect.width * 0.5;
+            const cy = rect.top + rect.height * 0.42;
+            const dx = e.clientX - cx;
+            const dy = e.clientY - cy;
+            const angle = Math.atan2(dy, dx);
+            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 220);
+            const f = dist / 220;
+            const rawX = Math.cos(angle) * f * 14;
+            const clampedX = rawX < 0 ? Math.max(rawX, -5) : rawX;
+            imgEyesEl.style.transform = `translate(${clampedX.toFixed(1)}px,${(Math.sin(angle)*f*10).toFixed(1)}px)`;
+        });
+
+        document.addEventListener('keydown', resetMochiIdle);
+
+        if (charWrapEl) {
+            charWrapEl.addEventListener('click', () => {
+                setMochiState('mad');
+                mochiResetTimer = setTimeout(() => setMochiState('default'), 700);
+            });
+        }
+
         const MAX_SESSIONS = 20;
         const MAX_CONTEXT_MESSAGES = 8;
         const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -1971,6 +2261,7 @@ APP_HTML = r"""
         };
 
         // Setup authentication handlers
+
         const updateAuthUI = (user) => {
             if (user) {
                 currentUser = user;
@@ -1991,6 +2282,7 @@ APP_HTML = r"""
                 userProfileBarEl.style.display = 'none';
                 authOverlayEl.style.display = 'flex';
                 showLogin();
+                setMochiState('default'); // Start Mochi loop!
                 
                 const clientId = "GOOGLE_CLIENT_ID_PLACEHOLDER";
                 if (!clientId || clientId === "GOOGLE_CLIENT_ID_PLACEHOLDER") {
@@ -2008,11 +2300,15 @@ APP_HTML = r"""
                 sessionToken = payload.session_token;
                 localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
                 
-                if (payload.first_time) {
-                    showOnboarding();
-                } else {
-                    updateAuthUI(payload);
-                }
+                setMochiState('surprised'); // Mochi happy/surprised face on success!
+                setTimeout(() => {
+                    if (payload.first_time) {
+                        showOnboarding();
+                        setMochiState('default');
+                    } else {
+                        updateAuthUI(payload);
+                    }
+                }, 1200);
             } else {
                 showAuthError("Authentication failed: No session token received.");
             }
@@ -2021,11 +2317,25 @@ APP_HTML = r"""
         const showAuthError = (msg) => {
             authErrorEl.textContent = msg;
             authErrorEl.style.display = 'block';
+            
+            // Mochi angry reaction and card shake
+            setMochiState('mad');
+            loginCardEl.classList.remove('shake');
+            void loginCardEl.offsetWidth; // force reflow
+            loginCardEl.classList.add('shake');
+            mochiResetTimer = setTimeout(() => setMochiState('default'), 2500);
         };
 
         const showOnboardingError = (msg) => {
             onboardingErrorEl.textContent = msg;
             onboardingErrorEl.style.display = 'block';
+            
+            // Mochi angry reaction and card shake
+            setMochiState('mad');
+            onboardingCardEl.classList.remove('shake');
+            void onboardingCardEl.offsetWidth; // force reflow
+            onboardingCardEl.classList.add('shake');
+            mochiResetTimer = setTimeout(() => setMochiState('default'), 2500);
         };
 
         const showOnboarding = () => {
@@ -2113,7 +2423,11 @@ APP_HTML = r"""
                     throw new Error(err.detail || 'Setup completion failed');
                 }
                 const data = await res.json();
-                updateAuthUI(data);
+                
+                setMochiState('surprised'); // Mochi happy/surprised face on success!
+                setTimeout(() => {
+                    updateAuthUI(data);
+                }, 1200);
             } catch (err) {
                 showOnboardingError(err.message);
             }
@@ -2260,9 +2574,14 @@ APP_HTML = r"""
             }
         };
 
+
+
         const applyTheme = (theme) => {
             document.body.dataset.theme = theme;
             themeToggleEl.checked = theme === 'dark';
+            if (typeof syncAuthThemeUI === 'function') {
+                syncAuthThemeUI(theme);
+            }
         };
 
         const loadTheme = () => {
@@ -3618,7 +3937,51 @@ APP_HTML = r"""
         });
         btnLogoutEl.addEventListener('click', performLogout);
 
+        // Bind Mochi Specific Input Reaction listeners
+        if (mockEmailEl) {
+            mockEmailEl.addEventListener('focus', () => {
+                if (mochiState === 'default' || mochiState === 'sleepy') setMochiState('peek');
+            });
+            mockEmailEl.addEventListener('blur', () => {
+                if (mochiState === 'peek') setMochiState('default');
+            });
+        }
+
+        if (onboardingDobEl) {
+            onboardingDobEl.addEventListener('focus', () => {
+                if (mochiState === 'default' || mochiState === 'sleepy') setMochiState('closed');
+            });
+            onboardingDobEl.addEventListener('blur', () => {
+                if (mochiState === 'closed') setMochiState('default');
+            });
+        }
+
+        // Bind Theme Toggle for Login screen
+        const authThemeToggleEl = document.getElementById('auth_theme_toggle');
+        const authSunIconEl = document.getElementById('auth_sun_icon');
+        const authMoonIconEl = document.getElementById('auth_moon_icon');
+
+        const syncAuthThemeUI = (theme) => {
+            const isDark = theme === 'dark';
+            if (authSunIconEl) authSunIconEl.classList.toggle('active', !isDark);
+            if (authMoonIconEl) authMoonIconEl.classList.toggle('active', isDark);
+        };
+
+        if (authThemeToggleEl) {
+            authThemeToggleEl.addEventListener('click', () => {
+                const currentTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+                applyTheme(currentTheme);
+                localStorage.setItem(THEME_KEY, currentTheme);
+                syncAuthThemeUI(currentTheme);
+            });
+        }
+
         // Run session validation on page load
+
+
+
+
+
         validateSession();
     </script>
 </body>
@@ -3993,3 +4356,20 @@ async def search_memory(query: str, n: int = 3):
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/static/{filename}")
+async def serve_static(filename: str):
+    import os
+    from fastapi import Response
+    filepath = os.path.join("static", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+    ext = os.path.splitext(filename)[1].lower()
+    media_type = "image/png"
+    if ext == ".svg":
+        media_type = "image/svg+xml"
+    elif ext in [".jpg", ".jpeg"]:
+        media_type = "image/jpeg"
+    with open(filepath, "rb") as f:
+        return Response(content=f.read(), media_type=media_type)
