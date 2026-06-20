@@ -78,8 +78,11 @@ def aggregator_node(state: ResearchState) -> dict:
     evidence_coverage = round((claims_with_evidence / total_claims), 3) if total_claims else 0.0
     avg_confidence = round((sum(c.confidence_score for c in claims) / total_claims), 3) if total_claims else 0.0
 
+    preferred_name = state.get("preferred_name") or "User"
+    custom_system_prompt = _SYSTEM_PROMPT + f"\n- Address the user as '{preferred_name}' directly and warmly when appropriate."
+
     final_answer = generate_text(
-        _SYSTEM_PROMPT,
+        custom_system_prompt,
         (
             f"Research query: {query}{conversation_context}\n\n"
             f"Verified claims:\n{claims_text or 'None available'}\n\n"
