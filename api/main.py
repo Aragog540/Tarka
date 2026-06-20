@@ -1595,7 +1595,7 @@ APP_HTML = r"""
         <div class="auth-card" id="login_card">
             <div class="auth-logo">Tarka</div>
             <h1 class="auth-title">Welcome to Tarka</h1>
-            <p class="auth-desc">Please sign in with your Google account to access the LangGraph-powered research assistant.</p>
+            <p class="auth-desc">Please sign in with your Google account.</p>
             
             <div id="auth_error" class="auth-error"></div>
             
