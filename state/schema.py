@@ -45,6 +45,7 @@ class Critique(BaseModel):
 class ResearchState(TypedDict):
     query: str
     conversation_context: str
+    preferred_name: Optional[str]
     memory_mode: Literal["balanced", "prefer_memory", "search_only"]
     search_results: Annotated[List[SearchResult], operator.add]
     summary: Optional[Summary]
