@@ -3960,13 +3960,11 @@ APP_HTML = r"""
         const authThemeToggleEl = document.getElementById('auth_theme_toggle');
         const authSunIconEl = document.getElementById('auth_sun_icon');
         const authMoonIconEl = document.getElementById('auth_moon_icon');
-
-        const syncAuthThemeUI = (theme) => {
+        function syncAuthThemeUI(theme) {
             const isDark = theme === 'dark';
             if (authSunIconEl) authSunIconEl.classList.toggle('active', !isDark);
             if (authMoonIconEl) authMoonIconEl.classList.toggle('active', isDark);
-        };
-
+        }
         if (authThemeToggleEl) {
             authThemeToggleEl.addEventListener('click', () => {
                 const currentTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
