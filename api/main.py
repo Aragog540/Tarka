@@ -473,6 +473,7 @@ APP_HTML = r"""
             align-items: center;
             gap: 16px;
             margin-bottom: 24px;
+            padding-left: 52px; /* Avoid overlapping fixed toggle button */
         }
 
         .header-logo {
@@ -485,10 +486,14 @@ APP_HTML = r"""
         }
 
         .drawer-toggle {
-            width: 42px;
-            height: 42px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1300;
+            width: 40px;
+            height: 40px;
             padding: 0;
-            border-radius: 50%;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -497,6 +502,7 @@ APP_HTML = r"""
             border: 1px solid var(--line);
             cursor: pointer;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .drawer-toggle:hover {
@@ -504,6 +510,23 @@ APP_HTML = r"""
             color: var(--accent);
             background: var(--accent-soft);
             transform: scale(1.05);
+        }
+
+        .main-content {
+            transition: padding-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+        }
+
+        @media (min-width: 1025px) {
+            body.sidebar-open .main-content {
+                padding-left: 300px;
+            }
+            body.sidebar-open .drawer-overlay {
+                display: none !important;
+            }
+            .drawer-close {
+                display: none !important;
+            }
         }
 
         .message.assistant.typing .message-content::after {
@@ -635,6 +658,8 @@ APP_HTML = r"""
             justify-content: center;
             border-radius: 50%;
             transition: all 0.2s ease;
+            position: relative;
+            z-index: 11;
         }
 
         .session-menu-trigger:hover {
@@ -1320,47 +1345,51 @@ APP_HTML = r"""
 </head>
 <body>
     <div class="drawer-overlay" id="drawer_overlay"></div>
-    <div class="wrap">
-        <div class="header-bar">
-            <button class="drawer-toggle" id="drawer_toggle" type="button" aria-label="Open sidebar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <div class="header-logo">Tarka</div>
-        </div>
-        <div class="workspace">
-            <aside class="card panel sidebar" id="sidebar_drawer">
-                <div class="sidebar-header">
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom: 8px;">
-                        <h2>Tarka AI</h2>
-                        <button class="drawer-close" id="drawer_close" type="button" aria-label="Close sidebar">&times;</button>
-                    </div>
-                    <p style="margin-bottom: 12px;">Each conversation is stored as a separate session.</p>
-                    <div class="actions" style="gap:10px; justify-content:space-between; width:100%;">
-                        <label class="theme-toggle" for="theme_toggle">
-                            <input id="theme_toggle" type="checkbox" />
-                            <span class="theme-switch" aria-hidden="true"></span>
-                            <span>Dark</span>
-                        </label>
-                        <button class="btn btn-secondary" id="new_session" type="button">New session</button>
-                    </div>
-                </div>
-                <div class="history-list" id="history_list"></div>
+    
+    <button class="drawer-toggle" id="drawer_toggle" type="button" aria-label="Toggle sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+    </button>
 
-                <div class="maker-card" aria-label="Maker information">
-                    <div class="maker-top">
-                        <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
-                        <div class="maker-copy">
-                            <strong>Made by Swaroop Bhowmik</strong>
-                            <span>Building Tarka</span>
-                        </div>
-                    </div>
-                    <div class="maker-links">
-                        <a class="maker-link" href="https://github.com/Aragog540" target="_blank" rel="noreferrer">GitHub</a>
-                        <a class="maker-link" href="https://linkedin.com/in/swaroop-bhowmik-8907b52a0/" target="_blank" rel="noreferrer">LinkedIn</a>
-                        <a class="maker-link" href="https://www.instagram.com/_.swar.oop._/" target="_blank" rel="noreferrer">Instagram</a>
-                    </div>
+    <aside class="card panel sidebar" id="sidebar_drawer">
+        <div class="sidebar-header">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom: 8px;">
+                <h2 style="padding-left: 48px;">Tarka AI</h2>
+                <button class="drawer-close" id="drawer_close" type="button" aria-label="Close sidebar">&times;</button>
+            </div>
+            <p style="margin-bottom: 12px;">Each conversation is stored as a separate session.</p>
+            <div class="actions" style="gap:10px; justify-content:space-between; width:100%;">
+                <label class="theme-toggle" for="theme_toggle">
+                    <input id="theme_toggle" type="checkbox" />
+                    <span class="theme-switch" aria-hidden="true"></span>
+                    <span>Dark</span>
+                </label>
+                <button class="btn btn-secondary" id="new_session" type="button">New session</button>
+            </div>
+        </div>
+        <div class="history-list" id="history_list"></div>
+
+        <div class="maker-card" aria-label="Maker information">
+            <div class="maker-top">
+                <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
+                <div class="maker-copy">
+                    <strong>Made by Swaroop Bhowmik</strong>
+                    <span>Building Tarka</span>
                 </div>
-            </aside>
+            </div>
+            <div class="maker-links">
+                <a class="maker-link" href="https://github.com/Aragog540" target="_blank" rel="noreferrer">GitHub</a>
+                <a class="maker-link" href="https://linkedin.com/in/swaroop-bhowmik-8907b52a0/" target="_blank" rel="noreferrer">LinkedIn</a>
+                <a class="maker-link" href="https://www.instagram.com/_.swar.oop._/" target="_blank" rel="noreferrer">Instagram</a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <div class="wrap">
+            <div class="header-bar">
+                <div class="header-logo">Tarka</div>
+            </div>
+            <div class="workspace">
 
             <div class="main-column">
                 <section class="card chat-shell">
@@ -1463,6 +1492,7 @@ APP_HTML = r"""
             </div>
         </div>
     </div>
+</div>
 
     <div class="sources-modal" id="sources_modal" aria-hidden="true">
         <div class="sources-modal-card" role="dialog" aria-modal="true" aria-labelledby="sources_modal_title">
@@ -1561,6 +1591,42 @@ APP_HTML = r"""
             if (!text) return false;
             const lower = text.toLowerCase();
             return EXPLICIT_WORDS.some((w) => new RegExp('\\b' + w.replace(/[-\\/\\^$*+?.()|[\\]{}]/g, '\\$&') + '\\b', 'i').test(lower));
+        };
+
+        const closeSidebar = () => {
+            document.body.classList.remove('sidebar-open');
+            localStorage.setItem('tarka-sidebar-open', 'false');
+            sidebarDrawerEl.classList.remove('open');
+            drawerOverlayEl.classList.remove('open');
+        };
+
+        const toggleSidebar = () => {
+            const isOpen = document.body.classList.toggle('sidebar-open');
+            localStorage.setItem('tarka-sidebar-open', isOpen);
+            sidebarDrawerEl.classList.toggle('open', isOpen);
+            if (window.innerWidth < 1025) {
+                drawerOverlayEl.classList.toggle('open', isOpen);
+            } else {
+                drawerOverlayEl.classList.remove('open');
+            }
+        };
+
+        const initSidebar = () => {
+            const saved = localStorage.getItem('tarka-sidebar-open');
+            const isDesktop = window.innerWidth >= 1025;
+            const shouldOpen = saved === null ? isDesktop : (saved === 'true');
+            
+            if (shouldOpen) {
+                document.body.classList.add('sidebar-open');
+                sidebarDrawerEl.classList.add('open');
+                if (!isDesktop) {
+                    drawerOverlayEl.classList.add('open');
+                }
+            } else {
+                document.body.classList.remove('sidebar-open');
+                sidebarDrawerEl.classList.remove('open');
+                drawerOverlayEl.classList.remove('open');
+            }
         };
 
         let sessions = [];
@@ -1757,8 +1823,9 @@ APP_HTML = r"""
             saveSessions();
             renderSessions();
             renderMessages();
-            sidebarDrawerEl.classList.remove('open');
-            drawerOverlayEl.classList.remove('open');
+            if (window.innerWidth < 1025) {
+                closeSidebar();
+            }
         };
 
         const shortPreview = (text, limit = 120) => {
@@ -2405,6 +2472,10 @@ APP_HTML = r"""
 
                 const menuBackdrop = document.createElement('div');
                 menuBackdrop.className = 'session-menu-backdrop';
+                menuBackdrop.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    toggleMenu(false);
+                });
 
                 const menu = document.createElement('div');
                 menu.className = 'session-menu';
@@ -2826,6 +2897,7 @@ APP_HTML = r"""
         initializeVoiceSettings();
         renderSessions();
         renderMessages();
+        initSidebar();
 
         if (window.speechSynthesis) {
             window.speechSynthesis.onvoiceschanged = () => {
@@ -2842,20 +2914,9 @@ APP_HTML = r"""
 
         newSessionBtn.addEventListener('click', startNewSession);
         
-        drawerToggleEl.addEventListener('click', () => {
-            sidebarDrawerEl.classList.toggle('open');
-            drawerOverlayEl.classList.toggle('open');
-        });
-
-        drawerCloseEl.addEventListener('click', () => {
-            sidebarDrawerEl.classList.remove('open');
-            drawerOverlayEl.classList.remove('open');
-        });
-
-        drawerOverlayEl.addEventListener('click', () => {
-            sidebarDrawerEl.classList.remove('open');
-            drawerOverlayEl.classList.remove('open');
-        });
+        drawerToggleEl.addEventListener('click', toggleSidebar);
+        drawerCloseEl.addEventListener('click', closeSidebar);
+        drawerOverlayEl.addEventListener('click', closeSidebar);
 
         sourcesModalCloseEl.addEventListener('click', closeSourcesModal);
         sourcesModalEl.addEventListener('click', (event) => {
@@ -2874,8 +2935,7 @@ APP_HTML = r"""
             if (event.key === 'Escape') {
                 closeSourcesModal();
                 closeShareModal();
-                sidebarDrawerEl.classList.remove('open');
-                drawerOverlayEl.classList.remove('open');
+                closeSidebar();
             }
         });
 
@@ -3080,21 +3140,23 @@ def _source_urls_from_results(results: list) -> list[str]:
 
 
 def _chunk_text(text: str, chunk_size: int = 24) -> list[str]:
-    words = text.split()
-    if not words:
-        return []
-
+    import re
+    tokens = re.split(r"(\s+)", text)
     chunks = []
     current = []
-    for word in words:
-        current.append(word)
-        if len(current) >= chunk_size:
-            chunks.append(" ".join(current))
-            current = []
-
+    word_count = 0
+    for token in tokens:
+        if not token:
+            continue
+        current.append(token)
+        if token.strip():
+            word_count += 1
+            if word_count >= chunk_size:
+                chunks.append("".join(current))
+                current = []
+                word_count = 0
     if current:
-        chunks.append(" ".join(current))
-
+        chunks.append("".join(current))
     return chunks
 
 
@@ -3197,7 +3259,7 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
                 cached_claims = cached.get("claims", [])
                 cached_meta = cached.get("metadata", {}) if isinstance(cached.get("metadata"), dict) else {}
                 for chunk in _chunk_text(cached_answer):
-                    yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk}})}\n\n"
                     await asyncio.sleep(0)
                 yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': cached_answer, 'source_urls': cached_source_urls, 'claims': cached_claims, 'iterations': 0, 'total_claims': len(cached_claims), 'evidence_coverage': float(cached_meta.get('evidence_coverage', 0.0)), 'avg_confidence': float(cached_meta.get('avg_confidence', 0.0)), 'from_memory': True}})}\n\n"
                 return
@@ -3244,7 +3306,7 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
                     final_answer = node_output.get("final_answer", "")
                     source_urls = node_output.get("source_urls", [])
                     for chunk in _chunk_text(final_answer):
-                        yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk + ' '}})}\n\n"
+                        yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk}})}\n\n"
                         await asyncio.sleep(0)
                     total_claims = len(latest_summary.claims) if latest_summary else 0
                     claims = [c.dict() for c in (latest_summary.claims if latest_summary else [])]
