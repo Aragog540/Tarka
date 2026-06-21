@@ -984,11 +984,12 @@ APP_HTML = r"""
         }
 
         .chat-shell {
-            padding: 28px;
-            min-height: calc(100vh - 48px);
+            padding: 24px;
+            height: calc(100vh - 120px);
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
+            overflow: hidden;
         }
 
         .chat-header {
@@ -1498,12 +1499,13 @@ APP_HTML = r"""
 
         @media (max-width: 900px) {
             .workspace { grid-template-columns: 1fr; }
-            .chat-shell { min-height: auto; }
+            .chat-shell { height: calc(100vh - 100px); }
         }
 
         @media (max-width: 640px) {
             .wrap { width: min(100% - 16px, 1360px); padding-top: 16px; }
             .chat-shell, .panel { padding: 16px; }
+            .chat-shell { height: calc(100vh - 80px); }
             .message { max-width: 95%; }
             .chat-header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .chat-header-meta { align-items: flex-start; text-align: left; }
