@@ -597,6 +597,7 @@ APP_HTML = r"""
         .header-bar {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 16px;
             margin-bottom: 24px;
             padding-left: 52px; /* Avoid overlapping fixed toggle button */
@@ -999,16 +1000,37 @@ APP_HTML = r"""
             gap: 24px;
             border-bottom: 1px solid var(--line);
             padding-bottom: 20px;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s ease, margin 0.4s ease, border 0.4s ease, opacity 0.3s ease;
+            max-height: 200px;
+            overflow: hidden;
+            opacity: 1;
+        }
+
+        .chat-header.collapsed {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            border-bottom: none;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .chat-header-meta {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 6px;
+            gap: 4px;
             text-align: right;
             color: var(--muted);
             font-size: 0.75rem;
+        }
+
+        .chat-header-meta > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .chat-header-meta strong {
@@ -1997,23 +2019,25 @@ APP_HTML = r"""
         <div class="wrap">
             <div class="header-bar">
                 <div class="header-logo">Tarka</div>
+                <div class="chat-header-meta" id="chat_header_meta">
+                    <div>
+                        <span class="session-badge" id="session_badge">Session 1</span>
+                        <strong id="status" class="status status-ready">Ready.</strong>
+                    </div>
+                    <span id="scroll_hint">Scroll through the transcript below.</span>
+                </div>
             </div>
             <div class="workspace">
 
             <div class="main-column">
                 <section class="card chat-shell">
-                    <div class="chat-header">
+                    <div class="chat-header" id="chat_header">
                         <div>
                             <div class="eyebrow">Tarka</div>
                             <h1>Research in a conversation.</h1>
                             <p class="lead">
                                 Ask follow-ups, keep the thread.
                             </p>
-                        </div>
-                        <div class="chat-header-meta">
-                            <span class="session-badge" id="session_badge">Session 1</span>
-                            <strong id="status" class="status status-ready">Ready.</strong>
-                            <span>Scroll through the transcript below.</span>
                         </div>
                     </div>
 
@@ -3533,6 +3557,16 @@ APP_HTML = r"""
         const renderMessages = () => {
             const session = getActiveSession();
             chatMessagesEl.innerHTML = '';
+
+            const hasMessages = session && session.messages && session.messages.length > 0;
+            const chatHeaderEl = document.getElementById('chat_header');
+            if (chatHeaderEl) {
+                if (hasMessages) {
+                    chatHeaderEl.classList.add('collapsed');
+                } else {
+                    chatHeaderEl.classList.remove('collapsed');
+                }
+            }
 
             if (!session || !session.messages.length) {
                 const welcomeContainer = document.createElement('div');
