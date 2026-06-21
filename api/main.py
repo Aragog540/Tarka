@@ -2091,6 +2091,9 @@ APP_HTML = r"""
         const userEmailEl = document.getElementById('user_email');
         const btnLogoutEl = document.getElementById('btn_logout');
         const btnToggleMockEl = document.getElementById('btn_toggle_mock');
+        const authThemeToggleEl = document.getElementById('auth_theme_toggle');
+        const authSunIconEl = document.getElementById('auth_sun_icon');
+        const authMoonIconEl = document.getElementById('auth_moon_icon');
 
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
@@ -3977,9 +3980,6 @@ APP_HTML = r"""
         }
 
         // Bind Theme Toggle for Login screen
-        const authThemeToggleEl = document.getElementById('auth_theme_toggle');
-        const authSunIconEl = document.getElementById('auth_sun_icon');
-        const authMoonIconEl = document.getElementById('auth_moon_icon');
         function syncAuthThemeUI(theme) {
             const isDark = theme === 'dark';
             if (authSunIconEl) authSunIconEl.classList.toggle('active', !isDark);
