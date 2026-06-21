@@ -2619,6 +2619,8 @@ APP_HTML = r"""
         let sessions = [];
         let activeSessionId = '';
         let activeStream = null;
+        let isExecuting = false;
+        let activeReject = null;
         let activeAssistantMessageId = null;
         let activeRequestId = null;
         let activeShareText = '';
@@ -3735,6 +3737,15 @@ APP_HTML = r"""
             }
         };
 
+        const stopExecution = () => {
+            stopActiveStream();
+            flushTypingQueue();
+            if (activeReject) {
+                activeReject(new Error('User stopped execution.'));
+                activeReject = null;
+            }
+        };
+
         const startNewSession = () => {
             flushTypingQueue();
             stopActiveStream();
@@ -3752,6 +3763,7 @@ APP_HTML = r"""
         };
 
         const streamAnswer = ({ query, context, useMemory }) => new Promise((resolve, reject) => {
+            activeReject = reject;
             const params = new URLSearchParams({
                 query,
                 context,
@@ -3766,6 +3778,7 @@ APP_HTML = r"""
 
             const finish = (payload) => {
                 finished = true;
+                activeReject = null;
                 stopActiveStream();
                 resolve(payload || {});
             };
@@ -3838,12 +3851,17 @@ APP_HTML = r"""
 
             source.onerror = () => {
                 if (finished) return;
+                activeReject = null;
                 stopActiveStream();
                 reject(new Error('Streaming connection failed.'));
             };
         });
 
         const sendMessage = async () => {
+            if (isExecuting) {
+                stopExecution();
+                return;
+            }
             flushTypingQueue();
             const voiceDraft = voiceDraftEl.value.trim();
             const query = (voiceDraft || queryEl.value || '').trim();
@@ -3910,8 +3928,10 @@ APP_HTML = r"""
 
             queryEl.value = '';
             voiceDraftEl.value = '';
-            runBtn.disabled = true;
-            runBtn.textContent = 'Streaming...';
+            
+            isExecuting = true;
+            runBtn.disabled = false;
+            runBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>Stop`;
             setStatus('Streaming the answer into the session.');
 
             speechStreamBuffer = '';
@@ -3951,6 +3971,7 @@ APP_HTML = r"""
                 });
                 setStatus(error.message || 'Something went wrong.');
             } finally {
+                isExecuting = false;
                 runBtn.disabled = false;
                 runBtn.textContent = 'Send';
             }
