@@ -3545,7 +3545,7 @@ APP_HTML = r"""
 
                 const subtitle = document.createElement('p');
                 subtitle.className = 'welcome-subtitle';
-                subtitle.textContent = 'What's on your agenda today?';
+                subtitle.textContent = 'What can I help you research today?';
 
                 welcomeContainer.append(title, subtitle);
                 chatMessagesEl.appendChild(welcomeContainer);
