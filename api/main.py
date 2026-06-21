@@ -1451,11 +1451,17 @@ APP_HTML = r"""
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--mochi-bg);
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 0% 0%, var(--accent-soft) 0%, transparent 35%),
+                radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.04) 0%, transparent 35%),
+                linear-gradient(var(--bg-grid) 1px, transparent 1px), 
+                linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
             padding: 40px 24px 24px;
             transition: background 0.3s, color 0.3s;
             overflow-y: auto;
-            font-family: 'Nunito', 'Outfit', sans-serif;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
         }
 
         .auth-container {
@@ -1509,16 +1515,18 @@ APP_HTML = r"""
         .auth-card {
             width: 100%;
             padding: 36px;
-            border-radius: 32px;
-            background: var(--mochi-bg-input);
-            border: 2px solid var(--mochi-border-input);
-            box-shadow: 0 8px 30px var(--mochi-input-shadow);
+            border-radius: var(--radius);
+            background: var(--panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             gap: 20px;
             text-align: center;
             animation: auth-modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            color: var(--mochi-text);
+            color: var(--text);
         }
 
         @keyframes auth-modal-in {
@@ -1529,8 +1537,8 @@ APP_HTML = r"""
         .auth-logo {
             font-size: 2.6rem;
             font-weight: 800;
-            color: var(--mochi-border-input);
-            font-family: 'Nunito', sans-serif;
+            color: var(--accent);
+            font-family: 'Plus Jakarta Sans', sans-serif;
             margin-bottom: 2px;
             letter-spacing: -0.02em;
         }
@@ -1538,12 +1546,12 @@ APP_HTML = r"""
         .auth-title {
             font-size: 1.45rem;
             font-weight: 800;
-            color: var(--mochi-text);
+            color: var(--text);
             margin-bottom: 4px;
         }
 
         .auth-desc {
-            color: var(--mochi-muted);
+            color: var(--muted);
             font-size: 0.95rem;
             line-height: 1.5;
             margin-bottom: 8px;
@@ -1558,48 +1566,47 @@ APP_HTML = r"""
 
         .auth-form-group label {
             font-size: 0.8rem;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--mochi-label);
+            color: var(--text);
             margin-left: 16px;
         }
 
         .auth-input {
             width: 100%;
-            border: 2px solid var(--mochi-border-input);
-            border-radius: 50px;
-            padding: 14px 20px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            background: var(--mochi-bg-input);
-            color: var(--mochi-text);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-inner);
+            padding: 12px 18px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: var(--panel-strong);
+            color: var(--text);
             outline: none;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px var(--mochi-input-shadow);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
         }
 
         .auth-input:focus {
-            border-color: var(--mochi-label);
-            box-shadow: 0 0 0 3px var(--mochi-input-shadow), 0 2px 8px var(--mochi-input-shadow);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft), 0 2px 8px rgba(0, 0, 0, 0.02);
         }
 
         .auth-error {
-            color: var(--mochi-accent);
+            color: #ef4444;
             font-size: 0.85rem;
-            font-weight: 700;
-            background: var(--mochi-bg-input);
-            border: 2px solid var(--mochi-accent);
+            font-weight: 600;
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
             padding: 12px 16px;
-            border-radius: 16px;
+            border-radius: var(--radius-inner);
             display: none;
             text-align: left;
-            box-shadow: 0 4px 12px rgba(192, 105, 76, 0.1);
         }
 
         .dev-login-box {
-            border-top: 2px dashed var(--mochi-border-input);
+            border-top: 1px dashed var(--line);
             padding-top: 20px;
             display: flex;
             flex-direction: column;
@@ -1611,9 +1618,38 @@ APP_HTML = r"""
             font-size: 0.8rem;
             font-weight: 700;
             text-transform: uppercase;
-            color: var(--mochi-label);
+            color: var(--muted);
             letter-spacing: 0.05em;
             margin-bottom: 8px;
+        }
+
+        .btn-mochi {
+            appearance: none;
+            border: 1px solid transparent;
+            border-radius: 99px;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .btn-mochi:hover {
+            background: var(--accent-strong);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-mochi:active {
+            transform: scale(0.98);
         }
 
         .auth-theme-toggle {
@@ -1622,15 +1658,21 @@ APP_HTML = r"""
             right: 24px;
             display: flex;
             align-items: center;
-            background: var(--mochi-toggle-track);
+            background: var(--panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--line);
             border-radius: 20px;
             padding: 3px;
             cursor: pointer;
             gap: 2px;
-            transition: background 0.3s;
-            border: none;
+            transition: all 0.3s;
             outline: none;
             z-index: 2010;
+        }
+
+        .auth-theme-toggle:hover {
+            border-color: var(--accent);
         }
 
         .auth-theme-toggle .icon {
@@ -1650,7 +1692,7 @@ APP_HTML = r"""
         }
 
         .auth-theme-toggle .icon.active {
-            background: var(--mochi-toggle-thumb);
+            background: var(--accent-soft);
         }
 
         @keyframes shake {
