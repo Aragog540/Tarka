@@ -1781,6 +1781,12 @@ APP_HTML = r"""
                         </div>
                     </div>
 
+                    <div id="mock_login_toggle_wrapper" style="display: none; justify-content: center; margin-top: 14px; margin-bottom: 14px;">
+                        <button id="btn_toggle_mock" type="button" style="background: none; border: none; color: var(--mochi-muted); font-size: 0.8rem; text-decoration: underline; cursor: pointer;">
+                            Bypass with Mock Login
+                        </button>
+                    </div>
+
                     <!-- Dev mode / mock sign-in when GOOGLE_CLIENT_ID is not configured -->
                     <div class="dev-login-box" id="dev_login_box" style="display: none;">
                         <p>Developer Mock Login</p>
@@ -2084,6 +2090,7 @@ APP_HTML = r"""
         const userNameEl = document.getElementById('user_name');
         const userEmailEl = document.getElementById('user_email');
         const btnLogoutEl = document.getElementById('btn_logout');
+        const btnToggleMockEl = document.getElementById('btn_toggle_mock');
 
         const HISTORY_KEY = 'tarka-chat-sessions';
         const ACTIVE_SESSION_KEY = 'tarka-active-session';
@@ -2285,12 +2292,14 @@ APP_HTML = r"""
                 setMochiState('default'); // Start Mochi loop!
                 
                 const clientId = "GOOGLE_CLIENT_ID_PLACEHOLDER";
-                if (!clientId || clientId === "GOOGLE_CLIENT_ID_PLACEHOLDER") {
+                if (!clientId || clientId === "GOOGLE_CLIENT_ID_" + "PLACEHOLDER") {
                     document.getElementById('google_signin_wrapper').style.display = 'none';
                     devLoginBoxEl.style.display = 'block';
+                    document.getElementById('mock_login_toggle_wrapper').style.display = 'none';
                 } else {
                     document.getElementById('google_signin_wrapper').style.display = 'flex';
                     devLoginBoxEl.style.display = 'none';
+                    document.getElementById('mock_login_toggle_wrapper').style.display = 'flex';
                 }
             }
         };
@@ -3936,6 +3945,17 @@ APP_HTML = r"""
             performOnboarding();
         });
         btnLogoutEl.addEventListener('click', performLogout);
+        if (btnToggleMockEl) {
+            btnToggleMockEl.addEventListener('click', () => {
+                if (devLoginBoxEl.style.display === 'none') {
+                    devLoginBoxEl.style.display = 'block';
+                    btnToggleMockEl.textContent = 'Hide Mock Login';
+                } else {
+                    devLoginBoxEl.style.display = 'none';
+                    btnToggleMockEl.textContent = 'Bypass with Mock Login';
+                }
+            });
+        }
 
         // Bind Mochi Specific Input Reaction listeners
         if (mockEmailEl) {
