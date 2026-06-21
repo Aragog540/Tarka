@@ -330,6 +330,19 @@ APP_HTML = r"""
             flex-wrap: wrap;
             gap: 8px;
             margin-bottom: 16px;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.4s ease, opacity 0.3s ease;
+            max-height: 100px;
+            overflow: hidden;
+            opacity: 1;
+        }
+
+        .chips.collapsed {
+            max-height: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .chip {
@@ -2044,7 +2057,7 @@ APP_HTML = r"""
                     <div class="chat-messages" id="chat_messages"></div>
 
                     <div class="composer">
-                        <div class="chips" aria-label="Example queries">
+                        <div class="chips" id="example_chips" aria-label="Example queries">
                             <button class="chip" type="button" data-query="Is GPT-4o better than Gemini 1.5 Pro for enterprise use?">Enterprise model choice</button>
                             <button class="chip" type="button" data-query="What are the best vector databases for a small production app?">Vector databases</button>
                             <button class="chip" type="button" data-query="What are the main pros and cons of FastAPI versus Flask for APIs?">FastAPI vs Flask</button>
@@ -3565,6 +3578,15 @@ APP_HTML = r"""
                     chatHeaderEl.classList.add('collapsed');
                 } else {
                     chatHeaderEl.classList.remove('collapsed');
+                }
+            }
+
+            const chipsEl = document.getElementById('example_chips');
+            if (chipsEl) {
+                if (hasMessages) {
+                    chipsEl.classList.add('collapsed');
+                } else {
+                    chipsEl.classList.remove('collapsed');
                 }
             }
 
