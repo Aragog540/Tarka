@@ -689,9 +689,12 @@ APP_HTML = r"""
 
         .history-list {
             display: grid;
-            gap: 8px;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 4px;
+            align-content: start;
             overflow-y: auto;
             padding-right: 4px;
+            padding-bottom: 60px; /* Generous bottom spacing to prevent clipping of last items */
             flex: 1;
             min-height: 0;
             scrollbar-width: thin;
@@ -706,41 +709,39 @@ APP_HTML = r"""
             position: relative;
             width: 100%;
             text-align: left;
-            border: 1px solid var(--line);
+            border: 1px solid transparent;
             border-radius: var(--radius-inner);
-            background: var(--panel-strong);
-            padding: 12px 14px;
+            background: transparent;
+            padding: 8px 12px;
             cursor: pointer;
             font-family: inherit;
             color: var(--text);
-            transition: all .2s ease;
-            display: grid;
-            gap: 4px;
+            transition: all .15s ease;
+            display: flex;
+            align-items: center;
+            height: 38px;
+            box-sizing: border-box;
         }
 
         .history-item:hover {
-            border-color: var(--accent);
             background: var(--accent-soft);
-            transform: translateY(-1px);
         }
 
         .history-item.active {
-            border-color: var(--accent);
             background: var(--accent-soft);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.05);
         }
 
         .history-item::before {
             content: "";
             position: absolute;
             left: 0;
-            top: 15%;
-            height: 70%;
+            top: 20%;
+            height: 60%;
             width: 3px;
             background: var(--accent);
             border-radius: 0 4px 4px 0;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.15s ease;
         }
 
         .history-item.active::before {
@@ -749,25 +750,33 @@ APP_HTML = r"""
 
         .history-item strong {
             display: block;
-            font-size: 0.88rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 500;
             line-height: 1.35;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding-right: 20px;
+            padding-right: 24px;
+            flex: 1;
         }
 
         .history-item span {
-            display: block;
-            color: var(--muted);
-            font-size: 0.75rem;
+            display: none !important;
         }
 
         .history-item-actions {
             position: absolute;
             right: 8px;
-            top: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 10;
+        }
+
+        .history-item:hover .history-item-actions,
+        .history-item.active .history-item-actions {
+            opacity: 1;
         }
 
         .session-menu-trigger {
@@ -799,16 +808,17 @@ APP_HTML = r"""
 
         .session-menu {
             position: absolute;
-            right: 0;
-            top: calc(100% + 4px);
-            min-width: 120px;
+            right: 26px; /* Position to the left of the trigger button */
+            top: 50%;
+            transform: translateY(-50%);
+            min-width: 100px;
             padding: 4px;
             border-radius: var(--radius-inner);
             border: 1px solid var(--line);
             background: var(--panel-strong);
             box-shadow: var(--shadow);
             display: none;
-            z-index: 10;
+            z-index: 20;
         }
 
         .session-menu.open {
@@ -3814,9 +3824,24 @@ APP_HTML = r"""
             };
 
             session.messages.push(userMessage, assistantMessage);
-            // Preserve auto-generated "Session #n" titles; only replace if title is explicitly 'New session' or empty
-            if (!session.title || session.title === 'New session') {
-                session.title = shortPreview(query, 42);
+            // If the title is default auto-generated ("Session #n" or "New session" or empty), auto-name it based on the first query
+            const isDefaultTitle = !session.title || session.title === 'New session' || /^Session \d+$/.test(session.title);
+            if (isDefaultTitle) {
+                session.title = shortPreview(query, 30);
+                fetch('/research/title', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.title) {
+                        session.title = data.title;
+                        saveSessions();
+                        renderSessions();
+                    }
+                })
+                .catch(err => console.error('Error auto-generating session title:', err));
             }
             session.updated_at = nowIso();
             activeAssistantMessageId = assistantMessage.id;
@@ -4216,6 +4241,31 @@ async def homepage():
     client_id = os.getenv("GOOGLE_CLIENT_ID", "")
     html = APP_HTML.replace("GOOGLE_CLIENT_ID_PLACEHOLDER", client_id)
     return HTMLResponse(html)
+
+
+class TitleRequest(BaseModel):
+    query: str
+
+@app.post("/research/title")
+async def generate_title(request: TitleRequest):
+    query = request.query.strip()
+    if not query:
+        return {"title": "New Session"}
+    try:
+        from llm import generate_text
+        title = generate_text(
+            system_prompt="You are a helper that generates a very brief, concise, and professional title/summary (2 to 4 words) for a chat session based on the user's first query. Do NOT use quotes around the title. Do NOT prefix it. Example: User query: 'How does photosynthesis convert sunlight into energy?' -> Title: 'Understanding Photosynthesis'",
+            user_prompt=f"Generate a 2-4 word title for this query: {query}",
+            max_tokens=20,
+            temperature=0.3
+        )
+        title = title.strip().replace('"', '').replace("'", "")
+        return {"title": title}
+    except Exception as e:
+        logger.error(f"[title] error generating title: {e}")
+        collapsed = " ".join(query.split())
+        fallback_title = collapsed[:35] + "..." if len(collapsed) > 35 else collapsed
+        return {"title": fallback_title}
 
 
 @app.post("/research", response_model=ResearchResponse)
