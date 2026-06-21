@@ -21,9 +21,37 @@ from observability.logger import logger
 load_dotenv()
 
 DB_FILE = "tarka.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
+DB_TYPE = "postgres" if DATABASE_URL else "sqlite"
+
+def get_db_connection():
+    if DB_TYPE == "postgres":
+        import psycopg2
+        return psycopg2.connect(DATABASE_URL)
+    else:
+        return sqlite3.connect(DB_FILE)
+
+def execute_query(query: str, params: tuple = ()):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if DB_TYPE == "postgres":
+        query = query.replace("?", "%s")
+    cursor.execute(query, params)
+    conn.commit()
+    conn.close()
+
+def fetch_one(query: str, params: tuple = ()):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if DB_TYPE == "postgres":
+        query = query.replace("?", "%s")
+    cursor.execute(query, params)
+    row = cursor.fetchone()
+    conn.close()
+    return row
 
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -64,16 +92,12 @@ def get_user_from_session(session_token: str) -> Optional[dict]:
     if not session_token:
         return None
     try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("""
+        row = fetch_one("""
             SELECT u.google_id, u.email, u.name, u.picture, u.dob, u.preferred_name
             FROM sessions s
             JOIN users u ON s.google_id = u.google_id
             WHERE s.session_token = ?
         """, (session_token,))
-        row = cursor.fetchone()
-        conn.close()
         if row:
             return {
                 "google_id": row[0],
@@ -854,6 +878,39 @@ APP_HTML = r"""
             border-radius: var(--radius-inner);
             padding: 16px;
             background: rgba(15, 23, 42, 0.005);
+        }
+
+        .welcome-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 40px 20px;
+            text-align: center;
+            animation: welcome-in 0.5s ease-out;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .welcome-title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 12px 0;
+            letter-spacing: -0.02em;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.1rem;
+            color: var(--muted);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        @keyframes welcome-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .maker-card {
@@ -2330,6 +2387,8 @@ APP_HTML = r"""
             } else {
                 currentUser = null;
                 sessionToken = '';
+                sessions = [];
+                activeSessionId = '';
                 localStorage.removeItem(SESSION_TOKEN_KEY);
                 userProfileBarEl.style.display = 'none';
                 authOverlayEl.style.display = 'flex';
@@ -2647,9 +2706,23 @@ APP_HTML = r"""
             return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         };
 
+        const getHistoryKey = () => {
+            if (currentUser && currentUser.google_id) {
+                return HISTORY_KEY + '-' + currentUser.google_id;
+            }
+            return HISTORY_KEY;
+        };
+
+        const getActiveSessionKey = () => {
+            if (currentUser && currentUser.google_id) {
+                return ACTIVE_SESSION_KEY + '-' + currentUser.google_id;
+            }
+            return ACTIVE_SESSION_KEY;
+        };
+
         const loadSessions = () => {
             try {
-                const raw = localStorage.getItem(HISTORY_KEY);
+                const raw = localStorage.getItem(getHistoryKey());
                 sessions = raw ? JSON.parse(raw) : [];
                 if (!Array.isArray(sessions)) {
                     sessions = [];
@@ -2659,7 +2732,7 @@ APP_HTML = r"""
             }
 
             try {
-                activeSessionId = localStorage.getItem(ACTIVE_SESSION_KEY) || '';
+                activeSessionId = localStorage.getItem(getActiveSessionKey()) || '';
             } catch {
                 activeSessionId = '';
             }
@@ -2677,8 +2750,8 @@ APP_HTML = r"""
 
         const saveSessions = () => {
             sessions = sessions.slice(0, MAX_SESSIONS);
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
-            localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId);
+            localStorage.setItem(getHistoryKey(), JSON.stringify(sessions));
+            localStorage.setItem(getActiveSessionKey(), activeSessionId);
         };
 
         function createSession(title) {
@@ -3450,10 +3523,33 @@ APP_HTML = r"""
             chatMessagesEl.innerHTML = '';
 
             if (!session || !session.messages.length) {
-                const empty = document.createElement('div');
-                empty.className = 'history-empty';
-                empty.textContent = 'Ask a question to begin a research session. Follow-up questions stay in the same thread.';
-                chatMessagesEl.appendChild(empty);
+                const welcomeContainer = document.createElement('div');
+                welcomeContainer.className = 'welcome-container';
+
+                const hour = new Date().getHours();
+                let greeting = 'Hello';
+                if (hour < 12) {
+                    greeting = 'Good morning';
+                } else if (hour < 18) {
+                    greeting = 'Good afternoon';
+                } else {
+                    greeting = 'Good evening';
+                }
+
+                const displayName = currentUser ? (currentUser.preferred_name || currentUser.name || '') : '';
+                const nameSuffix = displayName ? `, ${displayName}` : '';
+
+                const title = document.createElement('h1');
+                title.className = 'welcome-title';
+                title.textContent = `${greeting}${nameSuffix}.`;
+
+                const subtitle = document.createElement('p');
+                subtitle.className = 'welcome-subtitle';
+                subtitle.textContent = 'What can I help you research today?';
+
+                welcomeContainer.append(title, subtitle);
+                chatMessagesEl.appendChild(welcomeContainer);
+
                 sessionBadgeEl.textContent = session?.title || 'Session';
                 return;
             }
@@ -4332,17 +4428,14 @@ async def auth_google(req: GoogleLoginRequest):
     name = user_info["name"]
     picture = user_info["picture"]
 
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT dob, preferred_name FROM users WHERE google_id = ?", (google_id,))
-    row = cursor.fetchone()
+    row = fetch_one("SELECT dob, preferred_name FROM users WHERE google_id = ?", (google_id,))
     
     first_time = True
     dob = None
     preferred_name = None
     
     if not row:
-        cursor.execute(
+        execute_query(
             "INSERT INTO users (google_id, email, name, picture, dob, preferred_name) VALUES (?, ?, ?, ?, NULL, NULL)",
             (google_id, email, name, picture)
         )
@@ -4352,12 +4445,10 @@ async def auth_google(req: GoogleLoginRequest):
             first_time = False
 
     session_token = str(uuid.uuid4())
-    cursor.execute(
+    execute_query(
         "INSERT INTO sessions (session_token, google_id) VALUES (?, ?)",
         (session_token, google_id)
     )
-    conn.commit()
-    conn.close()
 
     return {
         "session_token": session_token,
@@ -4385,14 +4476,10 @@ async def auth_complete_setup(req: CompleteSetupRequest, session_token: str = ""
     if age < 13:
         raise HTTPException(status_code=400, detail="You must be at least 13 years old to sign up.")
         
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
+    execute_query(
         "UPDATE users SET dob = ?, preferred_name = ? WHERE google_id = ?",
         (dob, preferred_name, user["google_id"])
     )
-    conn.commit()
-    conn.close()
     
     user["dob"] = dob
     user["preferred_name"] = preferred_name
