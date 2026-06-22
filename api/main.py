@@ -2048,6 +2048,136 @@ APP_HTML = r"""
             border-radius: 8px;
         }
 
+        /* Mic button inside cylindrical search bar */
+        .mic-btn {
+            appearance: none;
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            color: var(--text-soft);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .mic-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        .mic-btn:hover {
+            color: var(--accent);
+            background: var(--accent-soft);
+            transform: scale(1.05);
+        }
+        .mic-btn.active {
+            color: #ffffff;
+            background: var(--accent);
+        }
+
+        /* Message Action Buttons under Tarka response */
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .msg-action-btn {
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: var(--text-soft);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            outline: none;
+        }
+
+        .msg-action-btn:hover {
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .msg-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        #open_settings_btn:hover {
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .settings-modal-body {
+            padding: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .settings-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .settings-form-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .settings-form-group input[type="text"],
+        .settings-form-group select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--panel-strong);
+            color: var(--text);
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .settings-form-group input[type="text"]:focus,
+        .settings-form-group select:focus {
+            border-color: var(--accent);
+        }
+
+        .settings-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .settings-checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .settings-help-text {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+            margin-top: 2px;
+            padding-left: 24px;
+        }
+
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2186,7 +2316,15 @@ APP_HTML = r"""
                     <span id="user_email">user@example.com</span>
                 </div>
             </div>
-            <button class="btn btn-secondary btn-logout" id="btn_logout" type="button">Logout</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn-icon" id="open_settings_btn" type="button" title="Settings" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 6px; transition: all 0.2s ease;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary btn-logout" id="btn_logout" type="button">Logout</button>
+            </div>
         </div>
     </aside>
 
@@ -2288,6 +2426,15 @@ APP_HTML = r"""
                                 </div>
                             </div>
 
+                            <button type="button" class="mic-btn" id="voice_mode_btn" title="Voice Mode">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                            </button>
+
                             <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
 
                             <button class="send-btn" id="run" type="button" title="Send">
@@ -2296,23 +2443,6 @@ APP_HTML = r"""
                                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                                 </svg>
                             </button>
-                        </div>
-
-                        <div class="composer-row">
-                                <div class="actions">
-                                    <button class="btn btn-secondary voice-mode-btn" id="voice_mode_btn" type="button">Voice mode</button>
-                                    <label class="toggle"><input id="use_memory" type="checkbox" checked /> Use memory cache</label>
-                                    <select id="memory_mode" class="memory-select" aria-label="Memory mode">
-                                        <option value="balanced" selected>Memory mode: Balanced</option>
-                                        <option value="prefer_memory">Memory mode: Prefer memory</option>
-                                        <option value="search_only">Memory mode: Search only</option>
-                                    </select>
-                                </div>
-                            <div class="actions">
-                                    <button class="btn btn-secondary" id="export_chat" type="button">Export</button>
-                                    <button class="btn btn-secondary" id="share_chat" type="button">Share</button>
-                                <button class="btn btn-secondary" id="clear" type="button">Clear input</button>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -2348,6 +2478,47 @@ APP_HTML = r"""
                 <button class="share-option-btn" id="share_instagram" type="button">Share on Instagram</button>
                 <button class="share-option-btn" id="share_mail" type="button">Share via Email</button>
                 <button class="share-option-btn" id="share_copy" type="button">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sources-modal" id="settings_modal" aria-hidden="true">
+        <div class="sources-modal-card" role="dialog" aria-modal="true" aria-labelledby="settings_modal_title">
+            <div class="sources-modal-header">
+                <div>
+                    <h3 id="settings_modal_title">Settings</h3>
+                    <p>Customize your profile and AI behaviors.</p>
+                </div>
+                <button class="sources-modal-close" id="settings_modal_close" type="button" aria-label="Close settings popup">×</button>
+            </div>
+            
+            <div class="settings-modal-body">
+                <div class="settings-form-group">
+                    <label for="settings_preferred_name">Preferred Name</label>
+                    <input type="text" id="settings_preferred_name" placeholder="e.g. Swaroop" style="width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--panel-strong); color: var(--text);" />
+                </div>
+                
+                <div class="settings-form-group" style="margin-top: 8px;">
+                    <label class="settings-checkbox-label">
+                        <input id="use_memory" type="checkbox" checked />
+                        Use memory cache
+                    </label>
+                    <span class="settings-help-text">Enables using context from previous turns saved in storage.</span>
+                </div>
+                
+                <div class="settings-form-group">
+                    <label for="memory_mode">Memory Mode</label>
+                    <select id="memory_mode" aria-label="Memory mode">
+                        <option value="balanced" selected>Balanced</option>
+                        <option value="prefer_memory">Prefer memory</option>
+                        <option value="search_only">Search only</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+                <button class="btn btn-secondary" id="settings_modal_cancel" type="button">Cancel</button>
+                <button class="btn btn-primary" id="settings_modal_save" type="button" style="background: var(--accent); color: #fff;">Save Changes</button>
             </div>
         </div>
     </div>
@@ -2393,11 +2564,14 @@ APP_HTML = r"""
             queryEl.style.height = (queryEl.scrollHeight) + 'px';
         };
         queryEl.addEventListener('input', autoResizeQuery);
-        const clearBtn = document.getElementById('clear');
-        const exportBtn = document.getElementById('export_chat');
-        const shareBtn = document.getElementById('share_chat');
         const sessionListEl = document.getElementById('history_list');
         const newSessionBtn = document.getElementById('new_session');
+        const openSettingsBtnEl = document.getElementById('open_settings_btn');
+        const settingsModalEl = document.getElementById('settings_modal');
+        const settingsModalCloseEl = document.getElementById('settings_modal_close');
+        const settingsModalCancelEl = document.getElementById('settings_modal_cancel');
+        const settingsModalSaveEl = document.getElementById('settings_modal_save');
+        const settingsPreferredNameEl = document.getElementById('settings_preferred_name');
         const sessionBadgeEl = document.getElementById('session_badge');
         const chatMessagesEl = document.getElementById('chat_messages');
         const sourcesModalEl = document.getElementById('sources_modal');
@@ -3093,7 +3267,7 @@ APP_HTML = r"""
 
         const setVoicePanelOpen = (isOpen) => {
             voicePanelEl.classList.toggle('open', isOpen);
-            voiceModeBtnEl.textContent = isOpen ? 'Hide voice mode' : 'Voice mode';
+            voiceModeBtnEl.classList.toggle('active', isOpen);
             voiceModeBtnEl.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         };
 
@@ -3927,6 +4101,67 @@ APP_HTML = r"""
                     }
                 }
 
+                if (message.role === 'assistant' && !message.isStreaming && message.content) {
+                    const actionRow = document.createElement('div');
+                    actionRow.className = 'message-actions';
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.type = 'button';
+                    copyBtn.className = 'msg-action-btn';
+                    copyBtn.title = 'Copy response to clipboard';
+                    copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(message.content || '').then(() => {
+                            setStatus('Answer copied to clipboard.');
+                        });
+                    });
+
+                    const shareBtn = document.createElement('button');
+                    shareBtn.type = 'button';
+                    shareBtn.className = 'msg-action-btn';
+                    shareBtn.title = 'Share';
+                    shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
+                    shareBtn.addEventListener('click', () => {
+                        openShareModal(buildShareText(session));
+                        setStatus('Choose a platform to share.');
+                    });
+
+                    const exportBtn = document.createElement('button');
+                    exportBtn.type = 'button';
+                    exportBtn.className = 'msg-action-btn';
+                    exportBtn.title = 'Export session';
+                    exportBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+                    exportBtn.addEventListener('click', () => {
+                        const payload = {
+                            title: session.title,
+                            exported_at: nowIso(),
+                            messages: session.messages.map((m) => ({
+                                role: m.role,
+                                content: m.content,
+                                source_urls: m.source_urls || [],
+                                claims: m.claims || [],
+                                evidence_coverage: m.evidence_coverage,
+                                avg_confidence: m.avg_confidence,
+                                created_at: m.created_at,
+                            })),
+                        };
+
+                        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const anchor = document.createElement('a');
+                        anchor.href = url;
+                        anchor.download = `${(session.title || 'session').replace(/[^a-z0-9-_]+/gi, '_').toLowerCase()}.json`;
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        anchor.remove();
+                        URL.revokeObjectURL(url);
+                        setStatus('Session exported as JSON.');
+                    });
+
+                    actionRow.append(copyBtn, shareBtn, exportBtn);
+                    bubble.appendChild(actionRow);
+                }
+
                 chatMessagesEl.appendChild(bubble);
             });
 
@@ -4240,59 +4475,79 @@ APP_HTML = r"""
                 closeSourcesModal();
                 closeShareModal();
                 closeSidebar();
+                if (settingsModalEl) {
+                    settingsModalEl.classList.remove('open');
+                    settingsModalEl.setAttribute('aria-hidden', 'true');
+                }
             }
         });
 
-        clearBtn.addEventListener('click', () => {
-            queryEl.value = '';
-            queryEl.style.height = '38px';
-            queryEl.focus();
-            setStatus('Input cleared.');
-        });
-
-        exportBtn.addEventListener('click', () => {
-            const session = getActiveSession();
-            if (!session || !session.messages.length) {
-                setStatus('No messages to export.');
-                return;
-            }
-
-            const payload = {
-                title: session.title,
-                exported_at: nowIso(),
-                messages: session.messages.map((m) => ({
-                    role: m.role,
-                    content: m.content,
-                    source_urls: m.source_urls || [],
-                    claims: m.claims || [],
-                    evidence_coverage: m.evidence_coverage,
-                    avg_confidence: m.avg_confidence,
-                    created_at: m.created_at,
-                })),
-            };
-
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = `${(session.title || 'session').replace(/[^a-z0-9-_]+/gi, '_').toLowerCase()}.json`;
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            URL.revokeObjectURL(url);
-            setStatus('Session exported as JSON.');
-        });
-
-        shareBtn.addEventListener('click', async () => {
-            const session = getActiveSession();
-            if (!session || !session.messages.length) {
-                setStatus('No messages to share.');
-                return;
-            }
-
-            openShareModal(buildShareText(session));
-            setStatus('Choose a platform to share.');
-        });
+        if (openSettingsBtnEl) {
+            openSettingsBtnEl.addEventListener('click', () => {
+                if (currentUser) {
+                    settingsPreferredNameEl.value = currentUser.preferred_name || currentUser.name || '';
+                }
+                settingsModalEl.classList.add('open');
+                settingsModalEl.setAttribute('aria-hidden', 'false');
+            });
+        }
+        if (settingsModalCloseEl) {
+            settingsModalCloseEl.addEventListener('click', () => {
+                settingsModalEl.classList.remove('open');
+                settingsModalEl.setAttribute('aria-hidden', 'true');
+            });
+        }
+        if (settingsModalCancelEl) {
+            settingsModalCancelEl.addEventListener('click', () => {
+                settingsModalEl.classList.remove('open');
+                settingsModalEl.setAttribute('aria-hidden', 'true');
+            });
+        }
+        if (settingsModalEl) {
+            settingsModalEl.addEventListener('click', (event) => {
+                if (event.target === settingsModalEl) {
+                    settingsModalEl.classList.remove('open');
+                    settingsModalEl.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
+        if (settingsModalSaveEl) {
+            settingsModalSaveEl.addEventListener('click', async () => {
+                const newName = settingsPreferredNameEl.value.trim();
+                if (!newName) {
+                    setStatus('Preferred name cannot be empty.');
+                    return;
+                }
+                if (currentUser) {
+                    setStatus('Saving settings...');
+                    try {
+                        const dob = currentUser.dob || '2000-01-01';
+                        const res = await fetch(`/auth/complete-setup?session_token=${encodeURIComponent(sessionToken)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ dob, preferred_name: newName })
+                        });
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.detail || 'Failed to update preferred name');
+                        }
+                        const updatedUser = await res.json();
+                        currentUser = updatedUser;
+                        userNameEl.textContent = updatedUser.preferred_name || updatedUser.name;
+                        setStatus('Settings saved.');
+                        settingsModalEl.classList.remove('open');
+                        settingsModalEl.setAttribute('aria-hidden', 'true');
+                    } catch (err) {
+                        console.error('Error saving settings:', err);
+                        setStatus('Error saving settings: ' + err.message);
+                    }
+                } else {
+                    setStatus('No user logged in.');
+                    settingsModalEl.classList.remove('open');
+                    settingsModalEl.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
 
         shareCopyEl.addEventListener('click', async () => {
             const copied = await copyShareText(activeShareText);
