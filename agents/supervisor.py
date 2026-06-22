@@ -24,6 +24,21 @@ def _conversation_context(state: ResearchState) -> str:
 def supervisor_node(state: ResearchState) -> dict:
     query = state["query"]
     context = _conversation_context(state)
+    research_mode = state.get("research_mode", "flash")
+
+    if research_mode in ("flash", "thesis"):
+        return {
+            "agent_logs": [{
+                "agent": "supervisor",
+                "plan": {
+                    "complexity": "low",
+                    "primary_angles": [],
+                    "suggested_sub_queries": [query],
+                    "requires_deep_critique": False,
+                },
+            }],
+            "iterations": 0,
+        }
 
     raw = generate_text(_SYSTEM_PROMPT, f"Query: {query}{context}", max_tokens=1000, json_mode=True)
     
