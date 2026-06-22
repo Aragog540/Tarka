@@ -182,7 +182,7 @@ def _source_from_url(url: str) -> str:
         return url
 
 
-def _tavily_search(sub_query: str) -> List[SearchResult]:
+def _tavily_search(sub_query: str, max_results: int = _MAX_RESULTS_PER_SUB_QUERY) -> List[SearchResult]:
     if not _TAVILY_KEY:
         logger.warning("TAVILY_API_KEY not set — returning empty results for query: %s", sub_query)
         return []
@@ -191,7 +191,7 @@ def _tavily_search(sub_query: str) -> List[SearchResult]:
         "api_key": _TAVILY_KEY,
         "query": sub_query,
         "search_depth": "advanced",
-        "max_results": _MAX_RESULTS_PER_SUB_QUERY,
+        "max_results": max_results,
         "include_answer": False,
     }
     response = requests.post(_TAVILY_URL, json=payload, timeout=15)
@@ -240,22 +240,30 @@ def searcher_node(state: ResearchState) -> dict:
     critique = state.get("critique")
     memory_mode = state.get("memory_mode", "balanced")
     conversation_context = _conversation_context(state)
-
-    critique_gaps = critique.gaps if critique else []
-    hints = _memory_hints(query) if memory_mode in ("balanced", "prefer_memory") else []
-    sub_queries = _generate_sub_queries(
-        query,
-        [g.dict() for g in critique_gaps] if critique_gaps else None,
-        conversation_context,
-        hints,
-    )
-
-    logger.info(f"[searcher] sub_queries={sub_queries}")
+    research_mode = state.get("research_mode", "flash")
 
     live_results: List[SearchResult] = []
-    for sub_q in sub_queries:
-        results = _tavily_search(sub_q)
-        live_results.extend(results)
+    hints = []
+
+    if research_mode == "flash":
+        sub_queries = [query]
+        live_results = _tavily_search(query, max_results=2)
+    elif research_mode == "thesis":
+        sub_queries = [query]
+        live_results = _tavily_search(query, max_results=4)
+    else:
+        critique_gaps = critique.gaps if critique else []
+        hints = _memory_hints(query) if memory_mode in ("balanced", "prefer_memory") else []
+        sub_queries = _generate_sub_queries(
+            query,
+            [g.dict() for g in critique_gaps] if critique_gaps else None,
+            conversation_context,
+            hints,
+        )
+
+        for sub_q in sub_queries:
+            results = _tavily_search(sub_q)
+            live_results.extend(results)
 
     memory_results = _memory_search(query) if memory_mode == "prefer_memory" else []
 
@@ -281,5 +289,6 @@ def searcher_node(state: ResearchState) -> dict:
             "results_count": len(reranked),
             "memory_mode": memory_mode,
             "memory_hints_used": len(hints),
+            "research_mode": research_mode,
         }],
     }
