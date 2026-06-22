@@ -8,6 +8,27 @@ from agents.summarizer import summarizer_node
 from state.schema import ResearchState
 
 
+def route_from_supervisor(state: ResearchState) -> str:
+    import re
+    query = state.get("query", "").strip()
+    q = re.sub(r'[^\w\s]', '', query.lower())
+    social_words = {
+        "hi", "hello", "hey", "yo", "sup", "greetings", "howdy",
+        "how are you", "how is it going", "hows it going", "whats up", "what up",
+        "good morning", "good afternoon", "good evening", "good night",
+        "thanks", "thank you", "bye", "goodbye"
+    }
+    if q in social_words:
+        return "aggregator"
+    
+    words = q.split()
+    if len(words) <= 3 and any(w in social_words for w in words):
+        if not any(w in words for w in ["what", "why", "how", "is", "define", "who"]):
+            return "aggregator"
+            
+    return "searcher"
+
+
 def build_graph() -> StateGraph:
     graph = StateGraph(ResearchState)
 
@@ -18,7 +39,11 @@ def build_graph() -> StateGraph:
     graph.add_node("aggregator", aggregator_node)
 
     graph.set_entry_point("supervisor")
-    graph.add_edge("supervisor", "searcher")
+    graph.add_conditional_edges(
+        "supervisor",
+        route_from_supervisor,
+        {"searcher": "searcher", "aggregator": "aggregator"},
+    )
     graph.add_edge("searcher", "summarizer")
     graph.add_edge("summarizer", "critic")
 
