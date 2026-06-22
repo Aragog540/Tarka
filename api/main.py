@@ -2280,8 +2280,7 @@ APP_HTML = r"""
                 <h2 style="padding-left: 48px;">Tarka AI</h2>
                 <button class="drawer-close" id="drawer_close" type="button" aria-label="Close sidebar">&times;</button>
             </div>
-            <p style="margin-bottom: 12px;">Each conversation is stored as a separate session.</p>
-            <div class="actions" style="gap:10px; justify-content:space-between; width:100%;">
+            <div class="actions" style="gap:10px; justify-content:space-between; width:100%; margin-top: 8px;">
                 <label class="theme-toggle" for="theme_toggle">
                     <input id="theme_toggle" type="checkbox" />
                     <span class="theme-switch" aria-hidden="true"></span>
@@ -4085,7 +4084,7 @@ APP_HTML = r"""
                     bubble.appendChild(sourcesButton);
                 }
 
-                if (message.role === 'assistant' && (typeof message.evidence_coverage === 'number' || typeof message.avg_confidence === 'number')) {
+                if (message.role === 'assistant' && message.research_mode !== 'flash' && message.research_mode !== 'thesis' && (typeof message.evidence_coverage === 'number' || typeof message.avg_confidence === 'number')) {
                     const metrics = document.createElement('div');
                     metrics.className = 'message-metrics';
 
@@ -4106,7 +4105,7 @@ APP_HTML = r"""
                     bubble.appendChild(metrics);
                 }
 
-                if (message.role === 'assistant') {
+                if (message.role === 'assistant' && !message.isStreaming) {
                     const suggestions = buildFollowUpSuggestions(message);
                     if (suggestions.length) {
                         const followUps = document.createElement('div');
@@ -4285,10 +4284,6 @@ APP_HTML = r"""
                 }
 
                 if (payload.type === 'delta') {
-                    if (voiceSettings.speakAnswers && voiceSettings.streamingVoice) {
-                        speechStreamBuffer += payload.data?.delta || '';
-                        flushSpeechStream(false);
-                    }
                     if (activeAssistantMessageId) {
                         const session = getActiveSession();
                         const assistant = session?.messages.find((message) => message.id === activeAssistantMessageId);
@@ -4310,17 +4305,6 @@ APP_HTML = r"""
                 }
 
                 if (payload.type === 'final') {
-                    if (voiceSettings.speakAnswers) {
-                        if (!voiceSettings.streamingVoice) {
-                            speakText(buildAnswerSpeech(payload.data || {}), { interrupt: true });
-                        } else {
-                            flushSpeechStream(true);
-                                const closingSpeech = buildAnswerSpeech(payload.data || {}, { includeAnswer: false });
-                                if (closingSpeech) {
-                                    enqueueSpeech(closingSpeech);
-                                }
-                        }
-                    }
                     updateActiveAssistant({
                         source_urls: payload.data?.source_urls || [],
                         claims: payload.data?.claims || [],
@@ -4385,6 +4369,7 @@ APP_HTML = r"""
                 evidence_coverage: null,
                 avg_confidence: null,
                 isStreaming: true,
+                research_mode: selectedMode,
                 created_at: nowIso(),
             };
 
