@@ -2522,6 +2522,54 @@ APP_HTML = r"""
         </div>
     </div>
 
+    <div class="sources-modal" id="mode_onboarding_modal" aria-hidden="true">
+        <div class="sources-modal-card" role="dialog" aria-modal="true" aria-labelledby="mode_onboarding_modal_title" style="max-width: 550px;">
+            <div class="sources-modal-header">
+                <div>
+                    <h3 id="mode_onboarding_modal_title">Welcome to Tarka AI!</h3>
+                    <p>Select the right mode for your task.</p>
+                </div>
+                <button class="sources-modal-close" id="mode_onboarding_modal_close" type="button" aria-label="Close onboarding modal">×</button>
+            </div>
+            
+            <div style="padding: 16px 0; display: flex; flex-direction: column; gap: 16px;">
+                <p style="font-size: 0.9rem; color: var(--text-soft); margin-bottom: 8px;">
+                    Tarka offers three distinct modes designed for different research workflows. You can change them anytime using the mode icon on the search bar.
+                </p>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; gap: 12px;">
+                        <span style="font-size: 1.5rem; flex-shrink: 0;">⚡</span>
+                        <div>
+                            <strong style="display: block; font-size: 0.95rem; color: var(--text); margin-bottom: 2px;">Flash (Default)</strong>
+                            <span style="font-size: 0.85rem; color: var(--text-soft);">Best for quick, direct, and concise answers in a natural conversational flow. Bypasses deep iterations to save time and credits.</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; gap: 12px;">
+                        <span style="font-size: 1.5rem; flex-shrink: 0;">🔍</span>
+                        <div>
+                            <strong style="display: block; font-size: 0.95rem; color: var(--text); margin-bottom: 2px;">Research</strong>
+                            <span style="font-size: 0.85rem; color: var(--text-soft);">Best for structured, multi-dimensional queries. Evaluates claims, verifies evidence, and summarizes by key dimensions.</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; gap: 12px;">
+                        <span style="font-size: 1.5rem; flex-shrink: 0;">🎓</span>
+                        <div>
+                            <strong style="display: block; font-size: 0.95rem; color: var(--text); margin-bottom: 2px;">Thesis Mode</strong>
+                            <span style="font-size: 0.85rem; color: var(--text-soft);">Best for academic and scientific writing. Refines your research ideas into a highly technical, structured abstract.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                <button class="btn btn-primary" id="mode_onboarding_modal_btn" type="button" style="background: var(--accent); color: #fff; padding: 10px 20px;">Got it, let's go!</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const queryEl = document.getElementById('query');
         const modeTriggerBtn = document.getElementById('mode_trigger_btn');
@@ -2571,6 +2619,9 @@ APP_HTML = r"""
         const settingsModalCancelEl = document.getElementById('settings_modal_cancel');
         const settingsModalSaveEl = document.getElementById('settings_modal_save');
         const settingsPreferredNameEl = document.getElementById('settings_preferred_name');
+        const modeOnboardingModalEl = document.getElementById('mode_onboarding_modal');
+        const modeOnboardingModalCloseEl = document.getElementById('mode_onboarding_modal_close');
+        const modeOnboardingModalBtnEl = document.getElementById('mode_onboarding_modal_btn');
         const sessionBadgeEl = document.getElementById('session_badge');
         const chatMessagesEl = document.getElementById('chat_messages');
         const sourcesModalEl = document.getElementById('sources_modal');
@@ -2978,6 +3029,7 @@ APP_HTML = r"""
                 setMochiState('surprised'); // Mochi happy/surprised face on success!
                 setTimeout(() => {
                     updateAuthUI(data);
+                    showModeOnboardingModal();
                 }, 1200);
             } catch (err) {
                 showOnboardingError(err.message);
@@ -4495,6 +4547,7 @@ APP_HTML = r"""
                 closeSourcesModal();
                 closeShareModal();
                 closeSidebar();
+                closeModeOnboardingModal();
                 if (settingsModalEl) {
                     settingsModalEl.classList.remove('open');
                     settingsModalEl.setAttribute('aria-hidden', 'true');
@@ -4565,6 +4618,34 @@ APP_HTML = r"""
                     setStatus('No user logged in.');
                     settingsModalEl.classList.remove('open');
                     settingsModalEl.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
+
+        const showModeOnboardingModal = () => {
+            if (modeOnboardingModalEl) {
+                modeOnboardingModalEl.classList.add('open');
+                modeOnboardingModalEl.setAttribute('aria-hidden', 'false');
+            }
+        };
+
+        const closeModeOnboardingModal = () => {
+            if (modeOnboardingModalEl) {
+                modeOnboardingModalEl.classList.remove('open');
+                modeOnboardingModalEl.setAttribute('aria-hidden', 'true');
+            }
+        };
+
+        if (modeOnboardingModalCloseEl) {
+            modeOnboardingModalCloseEl.addEventListener('click', closeModeOnboardingModal);
+        }
+        if (modeOnboardingModalBtnEl) {
+            modeOnboardingModalBtnEl.addEventListener('click', closeModeOnboardingModal);
+        }
+        if (modeOnboardingModalEl) {
+            modeOnboardingModalEl.addEventListener('click', (event) => {
+                if (event.target === modeOnboardingModalEl) {
+                    closeModeOnboardingModal();
                 }
             });
         }
