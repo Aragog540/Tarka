@@ -3989,25 +3989,60 @@ APP_HTML = r"""
                 welcomeContainer.className = 'welcome-container';
 
                 const hour = new Date().getHours();
-                let greeting = 'Hello';
-                if (hour < 12) {
-                    greeting = 'Good morning';
-                } else if (hour < 18) {
-                    greeting = 'Good afternoon';
-                } else {
-                    greeting = 'Good evening';
-                }
-
                 const displayName = currentUser ? (currentUser.preferred_name || currentUser.name || '') : '';
-                const nameSuffix = displayName ? `, ${displayName}` : '';
+                const nameStr = displayName ? displayName : '';
+
+                let welcomeTitle = '';
+                let welcomeSubtitle = '';
+
+                if (hour >= 0 && hour < 5) {
+                    // Late night (12 am - 5 am)
+                    welcomeTitle = nameStr ? `up late ${nameStr}?` : 'up late?';
+                    welcomeSubtitle = 'How can i help you?';
+                } else if (hour >= 5 && hour < 7) {
+                    // Early morning (5 am - 7 am)
+                    welcomeTitle = nameStr ? `Damnn, you are up early ${nameStr}` : 'Damnn, you are up early';
+                    welcomeSubtitle = 'How can i help you';
+                } else {
+                    // Non time-bound: rotates every 4 hours
+                    const quirkyGreetings = [
+                        {
+                            title: nameStr ? `${nameStr} , returns !!!` : 'Returned !!!',
+                            subtitle: 'What are you upto today'
+                        },
+                        {
+                            title: nameStr ? `Hey ${nameStr}!!` : 'Hey there!!',
+                            subtitle: "What's on your agenda today ?"
+                        },
+                        {
+                            title: nameStr ? `Welcome back, ${nameStr}.` : 'Welcome back.',
+                            subtitle: 'What can I help you research today?'
+                        },
+                        {
+                            title: nameStr ? `Tarka is ready, ${nameStr}!` : 'Tarka is ready!',
+                            subtitle: 'What shall we discover today?'
+                        },
+                        {
+                            title: nameStr ? `Ah, ${nameStr}, prompt engineer extraordinaire!` : 'Ah, prompt engineer extraordinaire!',
+                            subtitle: 'What are we looking up today?'
+                        },
+                        {
+                            title: nameStr ? `Back for more knowledge, ${nameStr}?` : 'Back for more knowledge?',
+                            subtitle: 'What can I help you research today?'
+                        }
+                    ];
+                    const index = Math.floor(hour / 4) % quirkyGreetings.length;
+                    welcomeTitle = quirkyGreetings[index].title;
+                    welcomeSubtitle = quirkyGreetings[index].subtitle;
+                }
 
                 const title = document.createElement('h1');
                 title.className = 'welcome-title';
-                title.textContent = `${greeting}${nameSuffix}.`;
+                title.textContent = welcomeTitle;
 
                 const subtitle = document.createElement('p');
                 subtitle.className = 'welcome-subtitle';
-                subtitle.textContent = 'What can I help you research today?';
+                subtitle.textContent = welcomeSubtitle;
 
                 welcomeContainer.append(title, subtitle);
                 chatMessagesEl.appendChild(welcomeContainer);
