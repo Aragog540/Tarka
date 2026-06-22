@@ -35,6 +35,23 @@ def critic_node(state: ResearchState) -> dict:
     summary = state.get("summary")
     iterations = state.get("iterations", 0)
     conversation_context = _conversation_context(state)
+    research_mode = state.get("research_mode", "flash")
+
+    if research_mode in ("flash", "thesis"):
+        return {
+            "critique": Critique(
+                gaps=[],
+                verified_claims=[c.claim for c in (summary.claims if summary else [])],
+                should_continue=False,
+                reasoning=f"Critique skipped in {research_mode} mode.",
+            ),
+            "iterations": iterations + 1,
+            "agent_logs": [{
+                "agent": "critic",
+                "decision": "stop",
+                "reason": "mode_bypass",
+            }],
+        }
 
     if iterations >= MAX_ITERATIONS:
         logger.info(f"[critic] max iterations ({MAX_ITERATIONS}) reached — forcing stop")
