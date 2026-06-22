@@ -57,3 +57,4 @@ class ResearchState(TypedDict):
     avg_confidence: float
     agent_logs: Annotated[List[dict], operator.add]
     error: Optional[str]
+    research_mode: Literal["flash", "research", "thesis"]
