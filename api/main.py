@@ -1283,6 +1283,8 @@ APP_HTML = r"""
             border: 1px solid var(--line);
             border-radius: var(--radius-inner);
             background: var(--panel-strong);
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .voice-panel.open {
@@ -1447,50 +1449,170 @@ APP_HTML = r"""
             gap: 14px;
         }
 
-        .composer textarea {
-            min-height: 80px;
-            resize: none;
-            font-size: 0.95rem;
-        }
-
-        .mode-selector-container {
+        .query-box-container {
             display: flex;
-            margin-bottom: 0px;
+            align-items: center;
+            background: var(--panel-strong) !important;
+            border: 1px solid var(--line);
+            border-radius: 999px; /* Cylindrical style */
+            padding: 8px 12px;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            position: relative;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
         }
 
-        .mode-select {
+        .query-box-container:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        /* Mode pill styling */
+        .mode-pill-selector {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .mode-trigger-btn {
+            appearance: none;
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mode-icon-circle {
+            width: 38px;
+            height: 38px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 1px solid rgba(79, 70, 229, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        .mode-trigger-btn:hover .mode-icon-circle {
+            transform: scale(1.05);
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        /* Dropdown menu styling */
+        .mode-dropdown-menu {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 0;
+            background: var(--panel-strong);
             border: 1px solid var(--line);
-            background: var(--panel-strong) !important;
-            color: var(--text);
             border-radius: var(--radius-inner);
-            padding: 8px 16px;
+            box-shadow: var(--shadow);
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 160px;
+            z-index: 1000;
+            animation: menu-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mode-dropdown-menu.open {
+            display: flex;
+        }
+
+        @keyframes menu-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mode-dropdown-item {
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 12px;
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s ease, color 0.15s ease;
+            width: 100%;
+        }
+
+        .mode-dropdown-item:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        /* Textarea input space */
+        .query-box-container textarea {
+            flex: 1;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 8px 4px !important;
+            margin: 0;
+            resize: none;
+            height: 38px;
+            min-height: 38px;
+            max-height: 120px;
+            line-height: 1.4;
             outline: none;
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--text);
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        /* Send Button styling */
+        .send-btn {
+            appearance: none;
+            border: none;
+            background: var(--accent);
+            color: #ffffff;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 14px;
-            padding-right: 36px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+            outline: none;
         }
 
-        body[data-theme="dark"] .mode-select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            transform: translate(-1px, 1px);
         }
 
-        .mode-select:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        .send-btn:hover {
+            background: var(--accent-strong);
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
 
-        .mode-select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        .send-btn:active {
+            transform: scale(0.95);
         }
 
         .composer-row {
@@ -2154,15 +2276,27 @@ APP_HTML = r"""
                             </div>
                         </div>
 
-                        <div class="mode-selector-container">
-                            <select id="research_mode" class="mode-select" aria-label="Tarka Mode">
-                                <option value="flash" selected>⚡ Flash (Default)</option>
-                                <option value="research">🔍 Research (Structured)</option>
-                                <option value="thesis">🎓 Thesis Mode</option>
-                            </select>
-                        </div>
+                        <div class="query-box-container">
+                            <div class="mode-pill-selector">
+                                <button type="button" class="mode-trigger-btn" id="mode_trigger_btn" title="Change Mode">
+                                    <span class="mode-icon-circle" id="current_mode_icon">⚡</span>
+                                </button>
+                                <div class="mode-dropdown-menu" id="mode_dropdown_menu">
+                                    <button type="button" class="mode-dropdown-item" data-value="flash">⚡ Flash</button>
+                                    <button type="button" class="mode-dropdown-item" data-value="research">🔍 Research</button>
+                                    <button type="button" class="mode-dropdown-item" data-value="thesis">🎓 Thesis Mode</button>
+                                </div>
+                            </div>
 
-                        <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
+                            <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
+
+                            <button class="send-btn" id="run" type="button" title="Send">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
 
                         <div class="composer-row">
                                 <div class="actions">
@@ -2178,7 +2312,6 @@ APP_HTML = r"""
                                     <button class="btn btn-secondary" id="export_chat" type="button">Export</button>
                                     <button class="btn btn-secondary" id="share_chat" type="button">Share</button>
                                 <button class="btn btn-secondary" id="clear" type="button">Clear input</button>
-                                <button class="btn btn-primary" id="run" type="button">Send</button>
                             </div>
                         </div>
                     </div>
@@ -2221,11 +2354,45 @@ APP_HTML = r"""
 
     <script>
         const queryEl = document.getElementById('query');
-        const researchModeEl = document.getElementById('research_mode');
+        const modeTriggerBtn = document.getElementById('mode_trigger_btn');
+        const modeDropdownMenu = document.getElementById('mode_dropdown_menu');
+        const currentModeIcon = document.getElementById('current_mode_icon');
         const useMemoryEl = document.getElementById('use_memory');
         const memoryModeEl = document.getElementById('memory_mode');
         const statusEl = document.getElementById('status');
         const runBtn = document.getElementById('run');
+
+        let selectedMode = 'flash';
+
+        modeTriggerBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            modeDropdownMenu.classList.toggle('open');
+        });
+
+        document.querySelectorAll('.mode-dropdown-item').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const value = item.dataset.value;
+                selectedMode = value;
+                
+                if (value === 'flash') currentModeIcon.textContent = '⚡';
+                else if (value === 'research') currentModeIcon.textContent = '🔍';
+                else if (value === 'thesis') currentModeIcon.textContent = '🎓';
+
+                modeDropdownMenu.classList.remove('open');
+                setStatus(`Mode changed to ${value.charAt(0).toUpperCase() + value.slice(1)}.`);
+            });
+        });
+
+        document.addEventListener('click', () => {
+            modeDropdownMenu.classList.remove('open');
+        });
+
+        const autoResizeQuery = () => {
+            queryEl.style.height = '38px';
+            queryEl.style.height = (queryEl.scrollHeight) + 'px';
+        };
+        queryEl.addEventListener('input', autoResizeQuery);
         const clearBtn = document.getElementById('clear');
         const exportBtn = document.getElementById('export_chat');
         const shareBtn = document.getElementById('share_chat');
@@ -3282,6 +3449,7 @@ APP_HTML = r"""
                 const displayText = `${speechRecognitionTranscript} ${speechRecognitionInterim}`.replace(/\s+/g, ' ').trim();
                 voiceDraftEl.value = displayText;
                 queryEl.value = displayText;
+                autoResizeQuery();
                 lastVoiceTranscriptConfidence = confidence;
                 voiceConfidenceEl.textContent = confidence
                     ? `Transcript confidence: ${Math.round(confidence * 100)}%`
@@ -3313,6 +3481,7 @@ APP_HTML = r"""
                 const cleanedTranscript = commandResult.text || transcript;
                 voiceDraftEl.value = cleanedTranscript;
                 queryEl.value = cleanedTranscript;
+                autoResizeQuery();
 
                 if (voiceSettings.clarifyFirst && looksLikeNeedsClarification(cleanedTranscript)) {
                     const clarification = 'I need a bit more detail before I research this. Please add the topic, target audience, or specific comparison you want.';
@@ -3977,11 +4146,12 @@ APP_HTML = r"""
             renderMessages();
 
             queryEl.value = '';
+            queryEl.style.height = '38px';
             voiceDraftEl.value = '';
             
             isExecuting = true;
             runBtn.disabled = false;
-            runBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>Stop`;
+            runBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>';
             setStatus('Streaming the answer into the session.');
 
             speechStreamBuffer = '';
@@ -3994,7 +4164,7 @@ APP_HTML = r"""
                     query: researchQuery,
                     context: conversationContext,
                     useMemory: useMemoryEl.checked,
-                    researchMode: researchModeEl.value,
+                    researchMode: selectedMode,
                 });
 
                 const assistant = session.messages.find((message) => message.id === activeAssistantMessageId);
@@ -4024,7 +4194,7 @@ APP_HTML = r"""
             } finally {
                 isExecuting = false;
                 runBtn.disabled = false;
-                runBtn.textContent = 'Send';
+                runBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
             }
         };
 
@@ -4042,6 +4212,7 @@ APP_HTML = r"""
             button.addEventListener('click', () => {
                 queryEl.value = button.dataset.query;
                 queryEl.focus();
+                autoResizeQuery();
             });
         });
 
@@ -4074,6 +4245,7 @@ APP_HTML = r"""
 
         clearBtn.addEventListener('click', () => {
             queryEl.value = '';
+            queryEl.style.height = '38px';
             queryEl.focus();
             setStatus('Input cleared.');
         });
@@ -4139,6 +4311,7 @@ APP_HTML = r"""
 
         const syncVoiceDraftToQuery = () => {
             queryEl.value = voiceDraftEl.value;
+            autoResizeQuery();
         };
 
         voiceToggleEl.addEventListener('click', () => {
@@ -4228,7 +4401,7 @@ APP_HTML = r"""
         });
 
         queryEl.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 sendMessage();
             }
