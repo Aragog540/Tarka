@@ -1453,6 +1453,46 @@ APP_HTML = r"""
             font-size: 0.95rem;
         }
 
+        .mode-selector-container {
+            display: flex;
+            margin-bottom: 0px;
+        }
+
+        .mode-select {
+            border: 1px solid var(--line);
+            background: var(--panel-strong) !important;
+            color: var(--text);
+            border-radius: var(--radius-inner);
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+            padding-right: 36px;
+        }
+
+        body[data-theme="dark"] .mode-select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+
+        .mode-select:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        .mode-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
         .composer-row {
             display: flex;
             align-items: center;
@@ -2114,6 +2154,14 @@ APP_HTML = r"""
                             </div>
                         </div>
 
+                        <div class="mode-selector-container">
+                            <select id="research_mode" class="mode-select" aria-label="Tarka Mode">
+                                <option value="flash" selected>⚡ Flash (Default)</option>
+                                <option value="research">🔍 Research (Structured)</option>
+                                <option value="thesis">🎓 Thesis Mode</option>
+                            </select>
+                        </div>
+
                         <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
 
                         <div class="composer-row">
@@ -2173,6 +2221,7 @@ APP_HTML = r"""
 
     <script>
         const queryEl = document.getElementById('query');
+        const researchModeEl = document.getElementById('research_mode');
         const useMemoryEl = document.getElementById('use_memory');
         const memoryModeEl = document.getElementById('memory_mode');
         const statusEl = document.getElementById('status');
@@ -3762,7 +3811,7 @@ APP_HTML = r"""
             setStatus('New session created.');
         };
 
-        const streamAnswer = ({ query, context, useMemory }) => new Promise((resolve, reject) => {
+        const streamAnswer = ({ query, context, useMemory, researchMode }) => new Promise((resolve, reject) => {
             activeReject = reject;
             const params = new URLSearchParams({
                 query,
@@ -3770,6 +3819,7 @@ APP_HTML = r"""
                 use_memory: useMemory ? '1' : '0',
                 memory_mode: memoryModeEl.value,
                 session_token: sessionToken,
+                research_mode: researchMode,
             });
 
             const source = new EventSource(`/research/stream?${params.toString()}`);
@@ -3944,6 +3994,7 @@ APP_HTML = r"""
                     query: researchQuery,
                     context: conversationContext,
                     useMemory: useMemoryEl.checked,
+                    researchMode: researchModeEl.value,
                 });
 
                 const assistant = session.messages.find((message) => message.id === activeAssistantMessageId);
@@ -4265,6 +4316,7 @@ class ResearchRequest(BaseModel):
     memory_mode: str = "balanced"
     conversation_context: str = ""
     session_token: Optional[str] = None
+    research_mode: str = "flash"
 
 
 class ResearchResponse(BaseModel):
@@ -4398,6 +4450,7 @@ async def run_research(request: ResearchRequest):
         "avg_confidence": 0.0,
         "agent_logs": [],
         "error": None,
+        "research_mode": request.research_mode if request.research_mode in {"flash", "research", "thesis"} else "flash",
     }
 
     try:
@@ -4428,7 +4481,7 @@ async def run_research(request: ResearchRequest):
 
 
 @app.get("/research/stream")
-async def stream_research(query: str, context: str = "", use_memory: bool = True, memory_mode: str = "balanced", session_token: str = ""):
+async def stream_research(query: str, context: str = "", use_memory: bool = True, memory_mode: str = "balanced", session_token: str = "", research_mode: str = "flash"):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
@@ -4470,6 +4523,7 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
             "avg_confidence": 0.0,
             "agent_logs": [],
             "error": None,
+            "research_mode": research_mode if research_mode in {"flash", "research", "thesis"} else "flash",
         }
 
         for event in research_graph.stream(initial_state):
