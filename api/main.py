@@ -2434,7 +2434,7 @@ APP_HTML = r"""
                                 </svg>
                             </button>
 
-                            <textarea id="query" placeholder="Ask a follow-up or start a new research session...">What are the best vector databases for a small production app?</textarea>
+                            <textarea id="query" placeholder="Ask a follow-up or start a new research session..."></textarea>
 
                             <button class="send-btn" id="run" type="button" title="Send">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3223,26 +3223,19 @@ APP_HTML = r"""
                 sessions = [];
             }
 
-            try {
-                activeSessionId = localStorage.getItem(getActiveSessionKey()) || '';
-            } catch {
-                activeSessionId = '';
-            }
+            // Clean up any empty sessions from the loaded history
+            sessions = sessions.filter(session => session.messages && session.messages.length > 0);
 
-            if (!sessions.length) {
-                const starter = createSession();
-                sessions = [starter];
-                activeSessionId = starter.id;
-            }
-
-            if (!sessions.some((session) => session.id === activeSessionId)) {
-                activeSessionId = sessions[0].id;
-            }
+            // Automatically start a brand new session on page load/login
+            const starter = createSession();
+            sessions.unshift(starter);
+            activeSessionId = starter.id;
         };
 
         const saveSessions = () => {
-            sessions = sessions.slice(0, MAX_SESSIONS);
-            localStorage.setItem(getHistoryKey(), JSON.stringify(sessions));
+            // Only save sessions with messages to localStorage
+            const sessionsToSave = sessions.filter(session => session.messages && session.messages.length > 0);
+            localStorage.setItem(getHistoryKey(), JSON.stringify(sessionsToSave.slice(0, MAX_SESSIONS)));
             localStorage.setItem(getActiveSessionKey(), activeSessionId);
         };
 
@@ -3264,6 +3257,8 @@ APP_HTML = r"""
 
         const setActiveSession = (sessionId) => {
             flushTypingQueue();
+            // Discard any empty sessions when switching away, except the one being activated (just in case)
+            sessions = sessions.filter(session => session.id === sessionId || (session.messages && session.messages.length > 0));
             activeSessionId = sessionId;
             const session = getActiveSession();
             if (session) {
@@ -3898,7 +3893,9 @@ APP_HTML = r"""
         const renderSessions = () => {
             sessionListEl.innerHTML = '';
 
-            if (!sessions.length) {
+            const loggedSessions = sessions.filter(session => session.messages && session.messages.length > 0);
+
+            if (!loggedSessions.length) {
                 const empty = document.createElement('div');
                 empty.className = 'history-empty';
                 empty.textContent = 'Start a session to keep a running chat log.';
@@ -3906,7 +3903,7 @@ APP_HTML = r"""
                 return;
             }
 
-            sessions.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).forEach((session) => {
+            loggedSessions.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).forEach((session) => {
                 const row = document.createElement('div');
                 row.className = 'history-item' + (session.id === activeSessionId ? ' active' : '');
                 row.setAttribute('role', 'button');
@@ -4288,6 +4285,19 @@ APP_HTML = r"""
         const startNewSession = () => {
             flushTypingQueue();
             stopActiveStream();
+
+            // If the current active session is already empty, just keep using it!
+            const currentActive = getActiveSession();
+            if (currentActive && (!currentActive.messages || currentActive.messages.length === 0)) {
+                queryEl.value = '';
+                queryEl.focus();
+                setStatus('Ready for a new session.');
+                return;
+            }
+
+            // Discard any other empty sessions from memory
+            sessions = sessions.filter(session => session.messages && session.messages.length > 0);
+
             const session = createSession(`Session ${sessions.length + 1}`);
             sessions.unshift(session);
             activeSessionId = session.id;
