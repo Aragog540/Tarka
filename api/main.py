@@ -1702,11 +1702,89 @@ APP_HTML = r"""
         @media (max-width: 640px) {
             .wrap { width: min(100% - 16px, 1360px); padding-top: 16px; }
             .chat-shell, .panel { padding: 16px; }
-            .chat-shell { height: calc(100vh - 80px); }
+            .chat-shell { height: calc(100vh - 80px); height: calc(100dvh - 80px); }
             .message { max-width: 95%; }
             .chat-header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .chat-header-meta { align-items: flex-start; text-align: left; }
             .share-options { grid-template-columns: 1fr; }
+
+            /* Mobile optimization for query box */
+            .query-box-container {
+                display: grid !important;
+                grid-template-areas: 
+                    "textarea textarea textarea"
+                    "mode voice run" !important;
+                grid-template-columns: auto 1fr auto !important;
+                grid-template-rows: auto auto !important;
+                border-radius: 20px !important;
+                padding: 12px 16px !important;
+                gap: 12px !important;
+            }
+            .query-box-container textarea {
+                grid-area: textarea !important;
+                width: 100% !important;
+                min-height: 48px !important;
+            }
+            .mode-pill-selector {
+                grid-area: mode !important;
+                justify-self: start !important;
+            }
+            .mic-btn {
+                grid-area: voice !important;
+                justify-self: start !important;
+                display: flex !important;
+            }
+            .send-btn {
+                grid-area: run !important;
+                justify-self: end !important;
+            }
+
+            /* Increased Touch Targets on Mobile */
+            .mode-icon-circle, .mic-btn, .send-btn {
+                width: 44px !important;
+                height: 44px !important;
+                font-size: 1.2rem !important;
+            }
+            .send-btn svg, .mic-btn svg {
+                width: 22px !important;
+                height: 22px !important;
+            }
+            .msg-action-btn {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .msg-action-btn svg {
+                width: 18px !important;
+                height: 18px !important;
+            }
+            .followup-chip {
+                padding: 10px 16px !important;
+                font-size: 0.9rem !important;
+            }
+
+            /* Hide unnecessary scroll hint to save space */
+            #scroll_hint {
+                display: none !important;
+            }
+
+            /* Drawer toggle touch target */
+            .drawer-toggle {
+                width: 44px !important;
+                height: 44px !important;
+                top: 16px !important;
+                left: 16px !important;
+            }
+
+            /* Modals spacing */
+            .sources-modal {
+                padding: 12px !important;
+            }
+            .sources-modal-card {
+                padding: 20px !important;
+                max-height: min(90dvh, 700px) !important;
+                gap: 16px !important;
+                border-radius: var(--radius-inner) !important;
+            }
         }
 
         /* Authentication & Onboarding UI Styles (Mochi Full-Screen Layout) */
