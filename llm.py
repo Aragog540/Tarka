@@ -58,6 +58,23 @@ def safe_json_loads(text: str, default_fallback: Any = None) -> Any:
 
 
 
+GROQ_MODEL_ALIASES = {
+    "llama-3.1-70b-versatile": "llama-3.3-70b-versatile",
+    "llama3-70b-8192": "llama-3.3-70b-versatile",
+    "llama3-8b-8192": "llama-3.1-8b-instant",
+    "llama-3.1-70b": "llama-3.3-70b-versatile",
+    "llama-3.3-70b": "llama-3.3-70b-versatile",
+    "llama-3.1-8b": "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768": "llama-3.3-70b-versatile",
+}
+
+ANTHROPIC_MODEL_ALIASES = {
+    "claude-sonnet-4-20250514": "claude-3-5-sonnet-20241022",
+    "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+    "claude-3-haiku": "claude-3-5-haiku-20241022",
+}
+
+
 def _provider_name() -> str:
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
     if provider:
@@ -71,41 +88,69 @@ def _provider_name() -> str:
 
 def _default_model(provider: str) -> str:
     if provider == "groq":
-        return os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        raw = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+        return GROQ_MODEL_ALIASES.get(raw, raw)
     if provider == "anthropic":
-        return os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+        raw = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022").strip()
+        return ANTHROPIC_MODEL_ALIASES.get(raw, raw)
     raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
 def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = None, max_tokens: int = 1000, temperature: float = 0.2, json_mode: bool = False) -> str:
     provider = _provider_name()
-    model_name = model or _default_model(provider)
+    raw_model = model or _default_model(provider)
 
     if provider == "groq":
         if Groq is None:
             raise RuntimeError("Groq provider selected but the groq package is not installed.")
+        
+        model_name = GROQ_MODEL_ALIASES.get(raw_model, raw_model)
         client = Groq(api_key=os.environ["GROQ_API_KEY"])
-        response = client.chat.completions.create(
-            model=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            response_format={"type": "json_object"} if json_mode else None,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
-        return response.choices[0].message.content.strip()
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                response_format={"type": "json_object"} if json_mode else None,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            # Automatic fallback to llama-3.1-8b-instant if 70b rate limits or fails
+            if model_name != "llama-3.1-8b-instant":
+                try:
+                    response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        response_format={"type": "json_object"} if json_mode else None,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                    )
+                    return response.choices[0].message.content.strip()
+                except Exception:
+                    pass
+            raise RuntimeError(f"Groq API error ({model_name}): {e}") from e
 
     if provider == "anthropic":
+        model_name = ANTHROPIC_MODEL_ALIASES.get(raw_model, raw_model)
         client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        message = client.messages.create(
-            model=model_name,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
-        return message.content[0].text.strip()
+        try:
+            message = client.messages.create(
+                model=model_name,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            return message.content[0].text.strip()
+        except Exception as e:
+            raise RuntimeError(f"Anthropic API error ({model_name}): {e}") from e
 
     raise ValueError(f"Unsupported LLM provider: {provider}")
+

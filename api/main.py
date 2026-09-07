@@ -5143,40 +5143,46 @@ async def stream_research(query: str, context: str = "", use_memory: bool = True
             "research_mode": research_mode if research_mode in {"flash", "research", "thesis"} else "flash",
         }
 
-        for event in research_graph.stream(initial_state):
-            for node_name, node_output in event.items():
-                if node_output.get("iterations") is not None:
-                    latest_iterations = node_output.get("iterations", latest_iterations)
-                if node_name == "summarizer":
-                    latest_summary = node_output.get("summary", latest_summary)
+        try:
+            for event in research_graph.stream(initial_state):
+                for node_name, node_output in event.items():
+                    if node_output.get("iterations") is not None:
+                        latest_iterations = node_output.get("iterations", latest_iterations)
+                    if node_name == "summarizer":
+                        latest_summary = node_output.get("summary", latest_summary)
 
-                payload = {
-                    "type": "node",
-                    "node": node_name,
-                    "data": {
-                        "iterations": node_output.get("iterations"),
-                        "logs": node_output.get("agent_logs", []),
-                    },
-                }
-                if node_name == "aggregator":
-                    payload["data"]["final_answer"] = node_output.get("final_answer", "")
-                    payload["data"]["source_urls"] = node_output.get("source_urls", [])
+                    payload = {
+                        "type": "node",
+                        "node": node_name,
+                        "data": {
+                            "iterations": node_output.get("iterations"),
+                            "logs": node_output.get("agent_logs", []),
+                        },
+                    }
+                    if node_name == "aggregator":
+                        payload["data"]["final_answer"] = node_output.get("final_answer", "")
+                        payload["data"]["source_urls"] = node_output.get("source_urls", [])
 
-                yield f"data: {json.dumps(payload)}\n\n"
-                await asyncio.sleep(0)
+                    yield f"data: {json.dumps(payload)}\n\n"
+                    await asyncio.sleep(0)
 
-                if node_name == "aggregator":
-                    final_answer = node_output.get("final_answer", "")
-                    source_urls = node_output.get("source_urls", [])
-                    for chunk in _chunk_text(final_answer):
-                        yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk}})}\n\n"
-                        await asyncio.sleep(0)
-                    total_claims = len(latest_summary.claims) if latest_summary else 0
-                    claims = [c.dict() for c in (latest_summary.claims if latest_summary else [])]
-                    yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': final_answer, 'source_urls': source_urls, 'claims': claims, 'iterations': latest_iterations, 'total_claims': total_claims, 'evidence_coverage': float(node_output.get('evidence_coverage', 0.0)), 'avg_confidence': float(node_output.get('avg_confidence', 0.0)), 'from_memory': False}})}\n\n"
-                    return
+                    if node_name == "aggregator":
+                        final_answer = node_output.get("final_answer", "")
+                        source_urls = node_output.get("source_urls", [])
+                        for chunk in _chunk_text(final_answer):
+                            yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': chunk}})}\n\n"
+                            await asyncio.sleep(0)
+                        total_claims = len(latest_summary.claims) if latest_summary else 0
+                        claims = [c.dict() for c in (latest_summary.claims if latest_summary else [])]
+                        yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': final_answer, 'source_urls': source_urls, 'claims': claims, 'iterations': latest_iterations, 'total_claims': total_claims, 'evidence_coverage': float(node_output.get('evidence_coverage', 0.0)), 'avg_confidence': float(node_output.get('avg_confidence', 0.0)), 'from_memory': False}})}\n\n"
+                        return
 
-        yield "data: [DONE]\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.error(f"[research/stream] Error during graph streaming: {e}", exc_info=True)
+            err_msg = f"Error processing research query: {str(e)}"
+            yield f"data: {json.dumps({'type': 'delta', 'node': 'assistant', 'data': {'delta': err_msg}})}\n\n"
+            yield f"data: {json.dumps({'type': 'final', 'node': 'assistant', 'data': {'request_id': request_id, 'query': query, 'final_answer': err_msg, 'source_urls': [], 'claims': [], 'iterations': latest_iterations, 'total_claims': 0, 'evidence_coverage': 0.0, 'avg_confidence': 0.0, 'from_memory': False}})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
