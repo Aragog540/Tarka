@@ -59,15 +59,15 @@ def safe_json_loads(text: str, default_fallback: Any = None) -> Any:
 
 
 GROQ_MODEL_ALIASES = {
-    "llama-3.1-8b-instant": "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile": "llama-3.3-70b-versatile",
-    "llama3-70b-8192": "llama-3.3-70b-versatile",
-    "llama3-8b-8192": "llama-3.3-70b-versatile",
-    "llama-3.1-8b": "llama-3.3-70b-versatile",
-    "llama-3.1-70b": "llama-3.3-70b-versatile",
-    "llama-3.3-70b": "llama-3.3-70b-versatile",
-    "llama-3.3-70b-versatile": "llama-3.3-70b-versatile",
-    "mixtral-8x7b-32768": "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant": "openai/gpt-oss-120b",
+    "llama-3.1-70b-versatile": "openai/gpt-oss-120b",
+    "llama3-70b-8192": "openai/gpt-oss-120b",
+    "llama3-8b-8192": "openai/gpt-oss-20b",
+    "llama-3.1-8b": "openai/gpt-oss-20b",
+    "llama-3.1-70b": "openai/gpt-oss-120b",
+    "llama-3.3-70b": "openai/gpt-oss-120b",
+    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+    "mixtral-8x7b-32768": "openai/gpt-oss-120b",
 }
 
 ANTHROPIC_MODEL_ALIASES = {
@@ -90,7 +90,7 @@ def _provider_name() -> str:
 
 def _default_model(provider: str) -> str:
     if provider == "groq":
-        raw = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+        raw = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
         return GROQ_MODEL_ALIASES.get(raw, raw)
     if provider == "anthropic":
         raw = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022").strip()
