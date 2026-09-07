@@ -121,20 +121,27 @@ def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = N
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            # Fallback to llama-3.3-70b-specdec if primary 70b-versatile fails
-            if model_name == "llama-3.3-70b-versatile":
+            # If model is not found or decommissioned, dynamically query active models on the user's Groq account!
+            err_str = str(e)
+            if "model_not_found" in err_str or "404" in err_str or "does not exist" in err_str:
                 try:
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-specdec",
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        response_format={"type": "json_object"} if json_mode else None,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt},
-                        ],
-                    )
-                    return response.choices[0].message.content.strip()
+                    models_resp = client.models.list()
+                    active_models = [m.id for m in models_resp.data if not any(x in m.id.lower() for x in ["whisper", "guard", "embed", "tts", "stt"])]
+                    for fallback_model in active_models:
+                        try:
+                            response = client.chat.completions.create(
+                                model=fallback_model,
+                                temperature=temperature,
+                                max_tokens=max_tokens,
+                                response_format={"type": "json_object"} if json_mode else None,
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": user_prompt},
+                                ],
+                            )
+                            return response.choices[0].message.content.strip()
+                        except Exception:
+                            continue
                 except Exception:
                     pass
             raise RuntimeError(f"Groq API error ({model_name}): {e}") from e

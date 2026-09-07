@@ -5311,6 +5311,27 @@ async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
+@app.get("/debug/models")
+async def debug_models():
+    info = {
+        "llm_provider_env": os.getenv("LLM_PROVIDER"),
+        "groq_key_set": bool(os.getenv("GROQ_API_KEY")),
+        "groq_key_prefix": (os.getenv("GROQ_API_KEY", "")[:8] + "...") if os.getenv("GROQ_API_KEY") else None,
+        "anthropic_key_set": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "groq_model_env": os.getenv("GROQ_MODEL"),
+        "tavily_key_set": bool(os.getenv("TAVILY_API_KEY")),
+    }
+    if os.getenv("GROQ_API_KEY"):
+        try:
+            from groq import Groq
+            client = Groq(api_key=os.environ["GROQ_API_KEY"])
+            models = client.models.list()
+            info["available_groq_models"] = [m.id for m in models.data]
+        except Exception as e:
+            info["groq_models_error"] = str(e)
+    return info
+
+
 @app.get("/static/{filename}")
 async def serve_static(filename: str):
     import os
