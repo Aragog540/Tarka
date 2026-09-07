@@ -59,12 +59,14 @@ def safe_json_loads(text: str, default_fallback: Any = None) -> Any:
 
 
 GROQ_MODEL_ALIASES = {
+    "llama-3.1-8b-instant": "llama-3.3-70b-versatile",
     "llama-3.1-70b-versatile": "llama-3.3-70b-versatile",
     "llama3-70b-8192": "llama-3.3-70b-versatile",
-    "llama3-8b-8192": "llama-3.1-8b-instant",
+    "llama3-8b-8192": "llama-3.3-70b-versatile",
+    "llama-3.1-8b": "llama-3.3-70b-versatile",
     "llama-3.1-70b": "llama-3.3-70b-versatile",
     "llama-3.3-70b": "llama-3.3-70b-versatile",
-    "llama-3.1-8b": "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile": "llama-3.3-70b-versatile",
     "mixtral-8x7b-32768": "llama-3.3-70b-versatile",
 }
 
@@ -119,11 +121,11 @@ def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = N
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            # Automatic fallback to llama-3.1-8b-instant if 70b rate limits or fails
-            if model_name != "llama-3.1-8b-instant":
+            # Fallback to llama-3.3-70b-specdec if primary 70b-versatile fails
+            if model_name == "llama-3.3-70b-versatile":
                 try:
                     response = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
+                        model="llama-3.3-70b-specdec",
                         temperature=temperature,
                         max_tokens=max_tokens,
                         response_format={"type": "json_object"} if json_mode else None,
@@ -136,6 +138,7 @@ def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = N
                 except Exception:
                     pass
             raise RuntimeError(f"Groq API error ({model_name}): {e}") from e
+
 
     if provider == "anthropic":
         model_name = ANTHROPIC_MODEL_ALIASES.get(raw_model, raw_model)
