@@ -59,15 +59,16 @@ def safe_json_loads(text: str, default_fallback: Any = None) -> Any:
 
 
 GROQ_MODEL_ALIASES = {
-    "llama-3.1-8b-instant": "openai/gpt-oss-120b",
-    "llama-3.1-70b-versatile": "openai/gpt-oss-120b",
-    "llama3-70b-8192": "openai/gpt-oss-120b",
+    "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+    "llama-3.1-70b-versatile": "openai/gpt-oss-20b",
+    "llama3-70b-8192": "openai/gpt-oss-20b",
     "llama3-8b-8192": "openai/gpt-oss-20b",
     "llama-3.1-8b": "openai/gpt-oss-20b",
-    "llama-3.1-70b": "openai/gpt-oss-120b",
-    "llama-3.3-70b": "openai/gpt-oss-120b",
-    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
-    "mixtral-8x7b-32768": "openai/gpt-oss-120b",
+    "llama-3.1-70b": "openai/gpt-oss-20b",
+    "llama-3.3-70b": "openai/gpt-oss-20b",
+    "llama-3.3-70b-versatile": "openai/gpt-oss-20b",
+    "mixtral-8x7b-32768": "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b": "openai/gpt-oss-20b",
 }
 
 ANTHROPIC_MODEL_ALIASES = {
@@ -90,7 +91,7 @@ def _provider_name() -> str:
 
 def _default_model(provider: str) -> str:
     if provider == "groq":
-        raw = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
+        raw = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip()
         return GROQ_MODEL_ALIASES.get(raw, raw)
     if provider == "anthropic":
         raw = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022").strip()
@@ -99,6 +100,7 @@ def _default_model(provider: str) -> str:
 
 
 def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = None, max_tokens: int = 1000, temperature: float = 0.2, json_mode: bool = False) -> str:
+    import time
     provider = _provider_name()
     raw_model = model or _default_model(provider)
 
@@ -108,44 +110,76 @@ def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = N
         
         model_name = GROQ_MODEL_ALIASES.get(raw_model, raw_model)
         client = Groq(api_key=os.environ["GROQ_API_KEY"])
-        try:
-            response = client.chat.completions.create(
-                model=model_name,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                response_format={"type": "json_object"} if json_mode else None,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            # If model is not found or decommissioned, dynamically query active models on the user's Groq account!
-            err_str = str(e)
-            if "model_not_found" in err_str or "404" in err_str or "does not exist" in err_str:
-                try:
-                    models_resp = client.models.list()
-                    active_models = [m.id for m in models_resp.data if not any(x in m.id.lower() for x in ["whisper", "guard", "embed", "tts", "stt"])]
-                    for fallback_model in active_models:
-                        try:
-                            response = client.chat.completions.create(
-                                model=fallback_model,
-                                temperature=temperature,
-                                max_tokens=max_tokens,
-                                response_format={"type": "json_object"} if json_mode else None,
-                                messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": user_prompt},
-                                ],
-                            )
-                            return response.choices[0].message.content.strip()
-                        except Exception:
-                            continue
-                except Exception:
-                    pass
-            raise RuntimeError(f"Groq API error ({model_name}): {e}") from e
 
+        candidate_models = [
+            model_name,
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",
+            "qwen/qwen3.6-27b",
+            "openai/gpt-oss-120b",
+        ]
+        # Deduplicate while preserving order
+        seen = set()
+        models_to_try = [m for m in candidate_models if not (m in seen or seen.add(m))]
+
+        last_error = None
+        for candidate in models_to_try:
+            for attempt in range(2):
+                try:
+                    response = client.chat.completions.create(
+                        model=candidate,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        response_format={"type": "json_object"} if json_mode else None,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                    )
+                    return response.choices[0].message.content.strip()
+                except Exception as e:
+                    last_error = e
+                    err_str = str(e)
+                    # Handle 429 rate limits
+                    if "429" in err_str or "rate_limit" in err_str or "TPM" in err_str:
+                        wait_seconds = 2.0
+                        match = re.search(r"try again in ([\d\.]+)s", err_str)
+                        if match:
+                            try:
+                                wait_seconds = min(float(match.group(1)) + 0.5, 4.0)
+                            except Exception:
+                                pass
+                        time.sleep(wait_seconds)
+                        continue  # Try second attempt on this model
+                    # If 404 / model not found, switch immediately to next candidate
+                    if "404" in err_str or "model_not_found" in err_str or "does not exist" in err_str:
+                        break
+
+        # If all predefined candidates failed, dynamically discover active models from account
+        try:
+            models_resp = client.models.list()
+            active_models = [m.id for m in models_resp.data if not any(x in m.id.lower() for x in ["whisper", "guard", "embed", "tts", "stt"])]
+            for dynamic_model in active_models:
+                if dynamic_model in models_to_try:
+                    continue
+                try:
+                    response = client.chat.completions.create(
+                        model=dynamic_model,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        response_format={"type": "json_object"} if json_mode else None,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                    )
+                    return response.choices[0].message.content.strip()
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        raise RuntimeError(f"Groq API error ({model_name}): {last_error}") from last_error
 
     if provider == "anthropic":
         model_name = ANTHROPIC_MODEL_ALIASES.get(raw_model, raw_model)
@@ -163,4 +197,5 @@ def generate_text(system_prompt: str, user_prompt: str, *, model: str | None = N
             raise RuntimeError(f"Anthropic API error ({model_name}): {e}") from e
 
     raise ValueError(f"Unsupported LLM provider: {provider}")
+
 
