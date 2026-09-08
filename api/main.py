@@ -2369,6 +2369,7 @@ APP_HTML = r"""
         </div>
         <div class="history-list" id="history_list"></div>
 
+        <!-- Temporarily hidden maker-card
         <div class="maker-card" aria-label="Maker information" style="margin-bottom: 16px;">
             <div class="maker-top">
                 <img class="maker-avatar" src="https://github.com/Aragog540.png" alt="GitHub profile picture of Swaroop Bhowmik" />
@@ -2383,6 +2384,7 @@ APP_HTML = r"""
                 <a class="maker-link" href="https://www.instagram.com/_.swar.oop._/" target="_blank" rel="noreferrer">Instagram</a>
             </div>
         </div>
+        -->
 
         <!-- User Profile info at the bottom -->
         <div class="user-profile-bar" id="user_profile_bar" style="display: none;">
